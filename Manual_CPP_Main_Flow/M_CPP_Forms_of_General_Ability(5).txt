@@ -1,0 +1,65 @@
+**REGION Process_Log_Region
+DateTime.GetCurrentDateTime.Local DateTimeFormat: DateTime.DateTimeFormat.DateAndTime CurrentDateTime=> CurrentDateTime2_PL
+Text.ConvertDateTimeToText.FromCustomDateTime DateTime: CurrentDateTime2_PL CustomFormat: $'''dd/MM/yyyy hh:mm:ss tt''' Result=> FormattedDateTime
+Text.ConvertDateTimeToText.FromCustomDateTime DateTime: CurrentDateTime2_PL CustomFormat: $'''dd/MM/yyyy''' Result=> CustomDate
+SET LogID TO LogIDS[5]
+SET Log_Type TO LogType[0]
+SET Item_Status TO ItemStatus[0]
+SET Subflow TO SubflowNames[4]
+SET Descrip TO $'''%Subflow% %In_Description[0]%'''
+SET ExceptionType TO $'''%''%'''
+CALL Global_Logs
+Text.Replace Text: CustomDate TextToFind: $'''/''' IsRegEx: False IgnoreCase: False ReplaceWith: $'''_''' ActivateEscapeSequences: False Result=> CustomDate
+SET Subflow TO SubflowNames[4]
+SET Descrip TO In_Description[0]
+SET ProcessLog TO $'''**********************************************************
+Policy: %Policy_Symbol%-%Policy_Number%-%Policy_Mod%
+Date And Time Flow Started: %FormattedDateTime%
+SubflowName: %Subflow%
+Description: %Subflow% %Descrip%'''
+File.WriteText File: $'''C:\\Users\\Jayesh Patil\\OneDrive - RABBIT AND TORTOISE TECHNOLOGY SOLUTIONS PRIVATE LIMITED\\Desktop\\Manual_CPP\\Manual_CPP_Logs\\Process Logs\\ProcesLog_%CustomDate%''' TextToWrite: ProcessLog AppendNewLine: True IfFileExists: File.IfFileExists.Append Encoding: File.FileEncoding.Unicode
+**ENDREGION
+Excel.SetActiveWorksheet.ActivateWorksheetByName Instance: ExcelInstance Name: $'''Forms of General Ability Covera'''
+Text.ParseText.RegexParseForFirstOccurrence Text: ExtractedPDFText TextToFind: $'''(?<= Forms Applicable To General Liability Coverage Part:(\\r\\n)).*(\\n.*)*(?=Quotation Only – No Coverage Is Provided – Quote May Be Subject To Change)''' StartingPosition: 0 IgnoreCase: False OccurrencePosition=> Position Match=> Match
+Text.ParseText.RegexParse Text: Match TextToFind: $'''.*(?=\\s\\d+\\/\\d+).*(\\n.*)*?''' StartingPosition: 0 IgnoreCase: False Matches=> Code_List
+SET RowIndex TO 2
+LOOP FOREACH CurrentItem IN Code_list
+    Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''.*(?=\\s\\d+\\/\\d+)''' StartingPosition: 0 IgnoreCase: False Match=> Form_Number
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Form_Number.Trimmed Column: $'''A''' Row: RowIndex
+    Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''(?<=\\d+\\w+?\\s)\\d+\\/\\d+(?=\\s)''' StartingPosition: 0 IgnoreCase: False Match=> Edition_Date
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Edition_Date.Trimmed Column: $'''B''' Row: RowIndex
+    Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''(?<=\\s\\d+\\/\\d+\\s).*(\\n.*)*?''' StartingPosition: 0 IgnoreCase: False Match=> Description
+    IF Contains(Description, $'''Avenues Package Product''', True) THEN
+        Text.Replace Text: Description TextToFind: $'''Avenues Package Product''' IsRegEx: False IgnoreCase: True ReplaceWith: $'''%''%''' ActivateEscapeSequences: False Result=> Description
+    END
+    IF Contains(Description, $'''A Commercial Insurance Program''', True) THEN
+        Text.Replace Text: Description TextToFind: $'''A Commercial Insurance Program''' IsRegEx: False IgnoreCase: True ReplaceWith: $'''%''%''' ActivateEscapeSequences: False Result=> Description
+    END
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Description.Trimmed Column: $'''C''' Row: RowIndex
+    Variables.IncreaseVariable Value: RowIndex IncrementValue: 1
+END
+Text.ParseText.RegexParseForFirstOccurrence Text: ExtractedPDFText TextToFind: $'''(?<=Audit Frequency:).*(\\n.*)*(?= Forms Applicable To General Liability Coverage Part:)''' StartingPosition: 0 IgnoreCase: False Match=> Temp
+Text.ParseText.RegexParseForFirstOccurrence Text: Temp TextToFind: $'''(?<=Limits of Insurance:).*''' StartingPosition: 0 IgnoreCase: False Match=> Limit_Of_Insurance
+Text.ParseText.RegexParseForFirstOccurrence Text: Temp TextToFind: $'''(?<=General Aggregate Limit\\s).*''' StartingPosition: 0 IgnoreCase: True Match=> General_Aggregrate_Limit
+Text.ParseText.RegexParseForFirstOccurrence Text: Temp TextToFind: $'''(?<=Products – Completed Operations Aggregate Limit\\s).*''' StartingPosition: 0 IgnoreCase: False Match=> Products_Completed_Operations_Aggregate_Limit
+Text.ParseText.RegexParseForFirstOccurrence Text: Temp TextToFind: $'''(?<=Each Occurrence Limit\\s).*''' StartingPosition: 0 IgnoreCase: False Match=> Each_Occurrence_Limit
+Text.ParseText.RegexParseForFirstOccurrence Text: Temp TextToFind: $'''(?<=Personal and Advertising Injury Limit\\s).*''' StartingPosition: 0 IgnoreCase: False Match=> Personal_and_Advertising_Injury_Limit
+Text.ParseText.RegexParseForFirstOccurrence Text: Temp TextToFind: $'''(?<=Damage to Premises Rented to You Limit\\s).*''' StartingPosition: 0 IgnoreCase: False Match=> Damage_to_Premises_Rented_to_You_Limit
+Text.ParseText.RegexParseForFirstOccurrence Text: Temp TextToFind: $'''(?<=Medical Expense Limit - any one person\\s).*''' StartingPosition: 0 IgnoreCase: False Match=> Medical_Expense_Limit_any_one_person
+Text.ParseText.RegexParseForFirstOccurrence Text: Temp TextToFind: $'''(?<=Total Quoted Commercial General Liability Premium\\s).*''' StartingPosition: 0 IgnoreCase: False Match=> Total_Quoted_Commercial_General_Liability_Premium
+Variables.CreateNewDatatable InputTable: { ^['Column1', 'Column2'], [$'''Limits of Insurance:''', Limit_Of_Insurance.Trimmed], [$'''General Aggregate Limit''', General_Aggregrate_Limit.Trimmed], [$'''Products – Completed Operations Aggregate Limit''', Products_Completed_Operations_Aggregate_Limit.Trimmed], [$'''Each Occurrence Limit''', Each_Occurrence_Limit.Trimmed], [$'''Personal and Advertising Injury Limit''', Personal_and_Advertising_Injury_Limit.Trimmed], [$'''Damage to Premises Rented to You Limit''', Damage_to_Premises_Rented_to_You_Limit.Trimmed], [$'''Medical Expense Limit - any one person''', Medical_Expense_Limit_any_one_person.Trimmed], [$'''General Liability Deductible:''', $''''''], [$'''Total Quoted Commercial General Liability Premium''', Total_Quoted_Commercial_General_Liability_Premium] } DataTable=> DataTable
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: DataTable Column: $'''H''' Row: 2
+**REGION Process_Log
+DateTime.GetCurrentDateTime.Local DateTimeFormat: DateTime.DateTimeFormat.DateAndTime CurrentDateTime=> CurrentDateTime2_PL
+Text.ConvertDateTimeToText.FromCustomDateTime DateTime: CurrentDateTime2_PL CustomFormat: $'''dd/MM/yyyy hh:mm:ss tt''' Result=> FormattedDateTime
+Text.ConvertDateTimeToText.FromCustomDateTime DateTime: CurrentDateTime2_PL CustomFormat: $'''dd/MM/yyyy''' Result=> CustomDate
+Text.Replace Text: CustomDate TextToFind: $'''/''' IsRegEx: False IgnoreCase: False ReplaceWith: $'''_''' ActivateEscapeSequences: False Result=> CustomDate
+SET Subflow TO SubflowNames[4]
+SET Descrip TO In_Description[1]
+SET ProcessLog TO $'''**********************************************************
+Policy: %Policy_Symbol%-%Policy_Number%-%Policy_Mod%
+Date And Time Flow Started: %FormattedDateTime%
+SubflowName: %Subflow%
+Description: %Subflow% %Descrip%'''
+File.WriteText File: $'''C:\\Users\\Jayesh Patil\\OneDrive - RABBIT AND TORTOISE TECHNOLOGY SOLUTIONS PRIVATE LIMITED\\Desktop\\Manual_CPP\\Manual_CPP_Logs\\Process Logs\\ProcesLog_%CustomDate%''' TextToWrite: ProcessLog AppendNewLine: True IfFileExists: File.IfFileExists.Append Encoding: File.FileEncoding.Unicode
+**ENDREGION

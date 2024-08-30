@@ -1,0 +1,9 @@
+WebAutomation.ExtractData.ExtractSingleValue BrowserInstance: Browser1 ExtractionParameters: {[$'''html > body > div:eq(2) > maxamineignore > div:eq(1) > div:eq(1) > span:eq(1) > table:eq(1) > tbody > tr > td > table > tbody > tr:eq(1) > td:eq(0) > table''', $'''Own Text''', $''''''] } TimeoutInSeconds: 60 ExtractedData=> A
+Text.Replace Text: A TextToFind: $'''/''' IsRegEx: False IgnoreCase: False ReplaceWith: $'''_''' ActivateEscapeSequences: False Result=> A1
+WebAutomation.ExtractData.ExtractSingleValue BrowserInstance: Browser1 ExtractionParameters: {[$'''html > body > div:eq(2) > maxamineignore > div:eq(1) > div:eq(1) > span:eq(1) > table:eq(1) > tbody > tr > td > table > tbody > tr:eq(1) > td:eq(1)''', $'''Own Text''', $''''''] } TimeoutInSeconds: 60 ExtractedData=> B
+SET Temp_No TO B[0][0]
+DateTime.GetCurrentDateTime.Local DateTimeFormat: DateTime.DateTimeFormat.DateAndTime CurrentDateTime=> Date_Time
+Text.Replace Text: Date_Time TextToFind: $'''/''' IsRegEx: False IgnoreCase: False ReplaceWith: $'''_''' ActivateEscapeSequences: False Result=> Date_Time2
+Text.Replace Text: Date_Time2 TextToFind: $''':''' IsRegEx: False IgnoreCase: False ReplaceWith: $'''.''' ActivateEscapeSequences: False Result=> Latest_Date_Time
+SET File_Name TO A1 + Temp_No + Latest_Date_Time
+Text.Replace Text: File_Name TextToFind: $'''\\r?\\n''' IsRegEx: True IgnoreCase: False ReplaceWith: $'''_''' ActivateEscapeSequences: False Result=> File_Name

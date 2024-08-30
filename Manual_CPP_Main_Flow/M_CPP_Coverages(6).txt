@@ -1,0 +1,101 @@
+**REGION Process_Log_Region
+DateTime.GetCurrentDateTime.Local DateTimeFormat: DateTime.DateTimeFormat.DateAndTime CurrentDateTime=> CurrentDateTime2_PL
+Text.ConvertDateTimeToText.FromCustomDateTime DateTime: CurrentDateTime2_PL CustomFormat: $'''dd/MM/yyyy hh:mm:ss tt''' Result=> FormattedDateTime
+Text.ConvertDateTimeToText.FromCustomDateTime DateTime: CurrentDateTime2_PL CustomFormat: $'''dd/MM/yyyy''' Result=> CustomDate
+SET LogID TO LogIDS[6]
+SET Log_Type TO LogType[0]
+SET Item_Status TO ItemStatus[0]
+SET Subflow TO SubflowNames[5]
+SET Descrip TO $'''%Subflow% %In_Description[0]%'''
+SET ExceptionType TO $'''%''%'''
+CALL Global_Logs
+Text.Replace Text: CustomDate TextToFind: $'''/''' IsRegEx: False IgnoreCase: False ReplaceWith: $'''_''' ActivateEscapeSequences: False Result=> CustomDate
+SET Subflow TO SubflowNames[5]
+SET Descrip TO In_Description[0]
+SET ProcessLog TO $'''**********************************************************
+Policy: %Policy_Symbol%-%Policy_Number%-%Policy_Mod%
+Date And Time Flow Started: %FormattedDateTime%
+SubflowName: %Subflow%
+Description: %Subflow% %Descrip%'''
+File.WriteText File: $'''C:\\Users\\Jayesh Patil\\OneDrive - RABBIT AND TORTOISE TECHNOLOGY SOLUTIONS PRIVATE LIMITED\\Desktop\\Manual_CPP\\Manual_CPP_Logs\\Process Logs\\ProcesLog_%CustomDate%''' TextToWrite: ProcessLog AppendNewLine: True IfFileExists: File.IfFileExists.Append Encoding: File.FileEncoding.Unicode
+**ENDREGION
+Excel.SetActiveWorksheet.ActivateWorksheetByName Instance: ExcelInstance Name: $'''Coverages'''
+DISABLE Text.ParseText.RegexParse Text: ExtractedPDFText TextToFind: $'''.*(?<=Occupancy Code: ).*(\\n?.*?)*?(?=Premium:).*''' StartingPosition: 0 IgnoreCase: False Matches=> All_Fields
+Text.ParseText.RegexParse Text: ExtractedPDFText TextToFind: $'''.*(?<=Occupancy Code: ).*(\\n?.*?)*?(?=\\s\\d+\\s\\d+\\s)''' StartingPosition: 0 IgnoreCase: False Matches=> All_Fields
+SET RowIndex TO 2
+LOOP FOREACH CurrentItem IN All_Fields
+    Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''(?<=Occupancy Code: )\\d+''' StartingPosition: 0 IgnoreCase: False Match=> Occupancy_Code
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Occupancy_Code Column: $'''A''' Row: RowIndex
+    Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''(?<=Occupancy Code: \\d* ).*''' StartingPosition: 0 IgnoreCase: False Match=> Cause_Of_Loss
+    Text.Trim Text: Cause_Of_Loss TrimOption: Text.TrimOption.Both TrimmedText=> Cause_Of_Loss
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Cause_Of_Loss Column: $'''B''' Row: RowIndex
+    Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''(?<=Occupancy Description:).*(\\n?.*?)*?(?=Subject of Insurance)''' StartingPosition: 0 IgnoreCase: False Match=> Occupancy_Description
+    Text.Replace Text: Occupancy_Description TextToFind: $'''\\r?\\n''' IsRegEx: True IgnoreCase: False ReplaceWith: $'''%' '%''' ActivateEscapeSequences: False Result=> Occupancy_Description
+    Text.Trim Text: Occupancy_Description TrimOption: Text.TrimOption.Both TrimmedText=> Occupancy_Description
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Occupancy_Description Column: $'''C''' Row: RowIndex
+    Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''(?<=Subject of Insurance: ).*(\\n?.*?)*?(?=\\sLimit)''' StartingPosition: 0 IgnoreCase: False Match=> Subject_Of_Insurance
+    Text.Replace Text: Subject_Of_Insurance TextToFind: $'''\\r?\\n''' IsRegEx: True IgnoreCase: False ReplaceWith: $'''%' '%''' ActivateEscapeSequences: False Result=> Subject_Of_Insurance
+    Text.Trim Text: Subject_Of_Insurance TrimOption: Text.TrimOption.Both TrimmedText=> Subject_Of_Insurance
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Subject_Of_Insurance Column: $'''D''' Row: RowIndex
+    Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''(?<=Limit:).*(\\n)(?=(Hour )?Deductible)''' StartingPosition: 0 IgnoreCase: False Match=> Limit
+    Text.Trim Text: Limit TrimOption: Text.TrimOption.Both TrimmedText=> Limit
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Limit Column: $'''E''' Row: RowIndex
+    Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''(?<=Hour Deductible: ).*''' StartingPosition: 0 IgnoreCase: False Match=> Hours_Deductible
+    Text.Trim Text: Hours_Deductible TrimOption: Text.TrimOption.Both TrimmedText=> Hours_Deductible
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Hours_Deductible Column: $'''F''' Row: RowIndex
+    Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''(?<=Deductible: )\\$\\d+,?\\d+''' StartingPosition: 0 IgnoreCase: False Match=> Deductible
+    Text.Trim Text: Deductible TrimOption: Text.TrimOption.Both TrimmedText=> Deductible
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Deductible Column: $'''G''' Row: RowIndex
+    Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''(?<=Extended Period of Indemnity:\\s).*''' StartingPosition: 0 IgnoreCase: False Match=> Extended_Period_Indemnity
+    Text.Trim Text: Extended_Period_Indemnity TrimOption: Text.TrimOption.Both TrimmedText=> Extended_Period_Indemnity
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Extended_Period_Indemnity Column: $'''H''' Row: RowIndex
+    Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''(?<=Wind/Hail \\W Flat| Ded\\s).*''' StartingPosition: 0 IgnoreCase: False Match=> Wind_Hail_Flat_Ded
+    Text.Trim Text: Wind_Hail_Flat_Ded TrimOption: Text.TrimOption.Both TrimmedText=> Wind_Hail_Flat_Ded
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Wind_Hail_Flat_Ded Column: $'''I''' Row: RowIndex
+    Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''(?<=Agreed Value Expiration Date:).*''' StartingPosition: 0 IgnoreCase: False Match=> Agreed_Value_Expiration_Date
+    Text.Trim Text: Agreed_Value_Expiration_Date TrimOption: Text.TrimOption.Both TrimmedText=> Agreed_Value_Expiration_Date
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Agreed_Value_Expiration_Date Column: $'''J''' Row: RowIndex
+    Text.ParseText.RegexParse Text: CurrentItem TextToFind: $'''(?<=Optional:).*''' StartingPosition: 0 IgnoreCase: False Matches=> Optional
+    LOOP FOREACH OptionalItem IN Optional
+        Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: OptionalItem.Trimmed Column: $'''K''' Row: RowIndex
+    END
+    Text.ParseText.RegexParse Text: CurrentItem TextToFind: $'''(?<=Valuation:\\s).*''' StartingPosition: 0 IgnoreCase: False Matches=> Valuation
+    LOOP FOREACH ValuationItem IN Valuation
+        Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: ValuationItem.Trimmed Column: $'''L''' Row: RowIndex
+    END
+    Text.ParseText.RegexParse Text: CurrentItem TextToFind: $'''(?<=Premium:\\s).*''' StartingPosition: 0 IgnoreCase: False Matches=> Premium
+    LOOP FOREACH PremiumItem IN Premium
+        IF Contains(PremiumItem, $'''Avenues Package Product''', True) THEN
+            Text.Replace Text: PremiumItem TextToFind: $'''Avenues Package Product''' IsRegEx: False IgnoreCase: True ReplaceWith: $'''%''%''' ActivateEscapeSequences: False Result=> PremiumItem
+        END
+        Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: PremiumItem.Trimmed Column: $'''M''' Row: RowIndex
+    END
+    Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''\\d+(?=\\sOccupancy Code:)''' StartingPosition: 0 IgnoreCase: False Match=> Building
+    Text.Trim Text: Building TrimOption: Text.TrimOption.Both TrimmedText=> Building
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Building Column: $'''O''' Row: RowIndex
+    Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''(?<=Coinsurance:\\s).*''' StartingPosition: 0 IgnoreCase: False Match=> Coinsurance
+    Text.Trim Text: Coinsurance TrimOption: Text.TrimOption.Both TrimmedText=> Coinsurance
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Coinsurance Column: $'''P''' Row: RowIndex
+    SET RowIndex TO RowIndex + 1
+END
+Text.ParseText.RegexParse Text: ExtractedPDFText TextToFind: $'''\\d{1,9}(?=\\s\\d+\\sOccupancy Code:)''' StartingPosition: 0 IgnoreCase: False Matches=> Location
+SET RowIndex TO 2
+LOOP FOREACH CurrentLocation IN Location
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: CurrentLocation.Trimmed Column: $'''N''' Row: RowIndex
+    SET RowIndex TO RowIndex + 1
+END
+CALL Coverages_2
+**REGION Process_Log
+DateTime.GetCurrentDateTime.Local DateTimeFormat: DateTime.DateTimeFormat.DateAndTime CurrentDateTime=> CurrentDateTime2_PL
+Text.ConvertDateTimeToText.FromCustomDateTime DateTime: CurrentDateTime2_PL CustomFormat: $'''dd/MM/yyyy hh:mm:ss tt''' Result=> FormattedDateTime
+Text.ConvertDateTimeToText.FromCustomDateTime DateTime: CurrentDateTime2_PL CustomFormat: $'''dd/MM/yyyy''' Result=> CustomDate
+Text.Replace Text: CustomDate TextToFind: $'''/''' IsRegEx: False IgnoreCase: False ReplaceWith: $'''_''' ActivateEscapeSequences: False Result=> CustomDate
+SET Subflow TO SubflowNames[5]
+SET Descrip TO In_Description[1]
+SET ProcessLog TO $'''**********************************************************
+Policy: %Policy_Symbol%-%Policy_Number%-%Policy_Mod%
+Date And Time Flow Started: %FormattedDateTime%
+SubflowName: %Subflow%
+Description: %Subflow% %Descrip%'''
+File.WriteText File: $'''C:\\Users\\Jayesh Patil\\OneDrive - RABBIT AND TORTOISE TECHNOLOGY SOLUTIONS PRIVATE LIMITED\\Desktop\\Manual_CPP\\Manual_CPP_Logs\\Process Logs\\ProcesLog_%CustomDate%''' TextToWrite: ProcessLog AppendNewLine: True IfFileExists: File.IfFileExists.Append Encoding: File.FileEncoding.Unicode
+**ENDREGION

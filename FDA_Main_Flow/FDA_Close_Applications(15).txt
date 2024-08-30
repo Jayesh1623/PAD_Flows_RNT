@@ -1,0 +1,13 @@
+Excel.SetActiveWorksheet.ActivateWorksheetByName Instance: ExcelInstance Name: $'''Entity Summary'''
+IF Class3_Devices = 0 THEN
+    SET Class3_Devices TO $'''-'''
+END
+IF Adverse_Event_Count = 0 THEN
+    SET Adverse_Event_Count TO $'''-'''
+END
+SET Warning_Letters TO $'''-'''
+Variables.CreateNewDatatable InputTable: { ^['Column1', 'Column2', 'Column3'], [$'''Establishment Name''', Est_Name, $''''''], [$'''Registration No''', Registration_Number, $''''''], [$'''Registration Year''', Registration_Year, $''''''], [$'''Total No Of Devices''', Total_No_Of_Devices, $''''''], [$'''Class 3 Devices''', Class3_Devices, $''''''], [$'''No of Inspections''', No_Of_Inspections, $''''''], [$'''No Of Recalls''', Total_No_Of_Recalls, $''''''], [$'''Warning Letters''', Warning_Letters, $''''''], [$'''1.Response Letter''', Response_Letter, $''''''], [$'''2.Closeout Letter''', Response_Letter, $''''''], [$'''Adverse Events''', Total_No_MAUDE, $''''''], [$'''Is This an adverse Report?''', Adverse_Event_Count, $''''''], [$'''Establishment''', Establishment, $''''''], [$'''Owner/Operator''', Owner_Operator, $''''''], [$'''Official Correspondent''', Official_Correspondent, $''''''] } DataTable=> Entity_Summary
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Entity_Summary Column: $'''A''' Row: 2
+CALL Database_Entity_Summary
+Excel.CloseExcel.CloseAndSaveAs Instance: ExcelInstance DocumentFormat: Excel.ExcelFormat.FromExtension DocumentPath: $'''C:\\Users\\Jayesh Patil\\Desktop\\JP1623\\%File_Name%.xlsx'''
+Excel.LaunchExcel.LaunchAndOpenUnderExistingProcess Path: Excel_File_Path Visible: True ReadOnly: False Instance=> ExcelInstance

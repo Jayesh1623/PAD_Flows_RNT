@@ -1,0 +1,66 @@
+Excel.SetActiveWorksheet.ActivateWorksheetByName Instance: ExcelInstance Name: $'''General Liability'''
+Text.ParseText.RegexParse Text: ExtractedPDFText TextToFind: $'''(?<=RATE\\s.*PREMIUM\\s).*(\\n?.*?)*?(?=Miscellaneous/Optional General Liability Coverages)''' StartingPosition: 0 IgnoreCase: False Matches=> DATA
+Text.ParseText.RegexParse Text: DATA TextToFind: $'''\\d+\\s.*(\\n.*)*?(?=\\s*\\d+\\s*\\w+\\/)|\\d+.*(\\n.*)*''' StartingPosition: 0 IgnoreCase: False Matches=> DATA
+LOOP FOREACH CurrentItem IN DATA
+    Excel.GetFirstFreeColumnRow Instance: ExcelInstance FirstFreeColumn=> FirstFreeColumn FirstFreeRow=> FirstFreeRow
+    Text.ParseText.RegexParse Text: CurrentItem TextToFind: $'''\\d+(?=\\s*\\w{2}\\/)''' StartingPosition: 0 IgnoreCase: False Matches=> Location
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''LOCATION''' Column: $'''A''' Row: 1
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Location Column: $'''A''' Row: FirstFreeRow
+    Text.ParseText.RegexParse Text: CurrentItem TextToFind: $'''(?<=\\d+\\s*)[A-Z]*\\/\\d+(?=\\s*\\w{5})''' StartingPosition: 0 IgnoreCase: False Matches=> State
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''STATE/TERR''' Column: $'''B''' Row: 1
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: State Column: $'''B''' Row: FirstFreeRow
+    Text.ParseText.RegexParse Text: CurrentItem TextToFind: $'''(?<=\\d+\\s*[A-Z]{2}\\/\\d{3}\\s*)\\w{5}''' StartingPosition: 0 IgnoreCase: False Matches=> Code
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''CODE''' Column: $'''C''' Row: 1
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Code Column: $'''C''' Row: FirstFreeRow
+    Text.ParseText.RegexParse Text: CurrentItem TextToFind: $'''(?<=\\d+\\s*[A-Z]{2}\\/\\d{3}\\s*\\w{5}\\s*)\\d+|(?<=\\$.*\\n\\s*)\\d{3}''' StartingPosition: 0 IgnoreCase: False Matches=> Subline
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''SUBLINE''' Column: $'''D''' Row: 1
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Subline Column: $'''D''' Row: FirstFreeRow
+    Text.ParseText.RegexParse Text: CurrentItem TextToFind: $'''(?<=\\d+\\s*[A-Z]{2}\\/\\d{3}\\s*\\w{5}\\s*\\d{3}\\s*)\\$?\\d*,?\\d+,?\\d*|(?<=\\$.*\\n\\s*\\d{3}\\s*)\\$\\d{0,9},?\\d*,?\\d{0,9}(?=\\s*\\d+)''' StartingPosition: 0 IgnoreCase: False Matches=> Premium_Basis
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''PREMIUM BASIS''' Column: $'''E''' Row: 1
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Premium_Basis Column: $'''E''' Row: FirstFreeRow
+    Text.ParseText.RegexParse Text: CurrentItem TextToFind: $'''\\d+\\sof\\sTotal\\sArea(?=\\s\\w+\\s\\d+[.])|\\d+,\\d+(?=\\s\\w+\\s\\d+[.])|\\d+,\\w+(?=\\s\\w+\\s[.])|\\w+(?=\\s\\w+\\s\\d+[.])|\\d+\\sof\\sTotal\\r\\n*Area[0]|\\w+(?=\\s\\w+\\s[.])|\\d+,\\d+(?=\\s\\$\\d+)''' StartingPosition: 0 IgnoreCase: False Matches=> Per
+    Text.Replace Text: Per TextToFind: $'''Area0''' IsRegEx: False IgnoreCase: False ReplaceWith: $'''Area''' ActivateEscapeSequences: False Result=> Per
+    Text.Replace Text: Per TextToFind: $'''Each0''' IsRegEx: False IgnoreCase: False ReplaceWith: $'''Each''' ActivateEscapeSequences: False Result=> Per
+    Text.SplitText.Split Text: Per StandardDelimiter: Text.StandardDelimiter.NewLine DelimiterTimes: 1 Result=> Per
+    IF Contains(Per, $'''1000 of Total''', True) THEN
+        Text.Replace Text: Per TextToFind: $'''\\r?\\n''' IsRegEx: True IgnoreCase: False ReplaceWith: $'''%' '%''' ActivateEscapeSequences: False Result=> Per
+    END
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''PER''' Column: $'''F''' Row: 1
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Per Column: $'''F''' Row: FirstFreeRow
+    Text.ParseText.RegexParse Text: CurrentItem TextToFind: $'''\\w+(?=\\s\\d+[.])|\\w+(?=\\s[.]\\d+)|(?<=,.*)\\$\\d+\\s.*(?=\\s\\d+[.])|(?<=,.*)\\$\\d+\\s.*(?=\\s[.]\\d+)''' StartingPosition: 0 IgnoreCase: False Matches=> Ded
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''DED''' Column: $'''G''' Row: 1
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Ded Column: $'''G''' Row: FirstFreeRow
+    Text.ParseText.RegexParse Text: CurrentItem TextToFind: $'''\\d+[.]\\d+(?=\\s\\$\\d+)|[.]\\d+(?=\\s\\$\\d+)''' StartingPosition: 0 IgnoreCase: False Matches=> Rate
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''RATE''' Column: $'''H''' Row: 1
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Rate Column: $'''H''' Row: FirstFreeRow
+    Text.ParseText.RegexParse Text: CurrentItem TextToFind: $'''(?<=\\d+[.]\\d+\\s).*|(?<=[.]\\d+\\s).*''' StartingPosition: 0 IgnoreCase: False Matches=> Premium
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $''' PREMIUM''' Column: $'''I''' Row: 1
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Premium Column: $'''I''' Row: FirstFreeRow
+    IF Contains(CurrentItem, $'''Avenues Package Product''', True) THEN
+        Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''.*(\\n.*)*(?=Avenues Package Product)''' StartingPosition: 0 IgnoreCase: False Match=> CurrentItem
+    END
+    Text.ParseText.RegexParse Text: CurrentItem TextToFind: $'''\\r?\\n\\s+[A-z].*(\\n.*)*''' StartingPosition: 0 IgnoreCase: False Matches=> Code_List
+    Text.Trim Text: Code_List TrimOption: Text.TrimOption.Both TrimmedText=> Code_List
+    Text.SplitText.Split Text: Code_List StandardDelimiter: Text.StandardDelimiter.NewLine DelimiterTimes: 1 Result=> TextList
+    BLOCK 
+ON BLOCK ERROR all
+
+END
+        IF Contains(TextList[TextList.Count - 2], $'''Damage''', True) THEN
+            Text.Replace Text: TextList[TextList.Count - 2] TextToFind: $'''Damage''' IsRegEx: False IgnoreCase: True ReplaceWith: $'''%''%''' ActivateEscapeSequences: False Result=> Unit
+        END
+        Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Unit Column: $'''J''' Row: FirstFreeRow
+    END
+    Excel.GetFirstFreeColumnRow Instance: ExcelInstance FirstFreeColumn=> FirstFreeColumn FirstFreeRow=> FirstFreeRow
+    BLOCK 
+ON BLOCK ERROR all
+
+END
+        IF Contains(TextList[TextList.Count - 2], $'''Damage''', True) THEN
+            Text.Replace Text: TextList[TextList.Count - 2] TextToFind: $'''Damage''' IsRegEx: False IgnoreCase: True ReplaceWith: $'''%''%''' ActivateEscapeSequences: False Result=> Unit
+        END
+        Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Unit Column: $'''J''' Row: FirstFreeRow - 1
+    END
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: TextList Column: $'''A''' Row: FirstFreeRow
+END
+CALL General_Liability2

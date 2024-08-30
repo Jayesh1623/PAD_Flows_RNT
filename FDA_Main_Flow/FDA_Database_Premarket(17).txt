@@ -1,0 +1,10 @@
+Database.Connect ConnectionString: $'''Provider=MSOLEDBSQL.1;Password=fda_dev_login;Persist Security Info=True;User ID=fda_dev_login;Initial Catalog=fda_dev;Data Source=rntdbinstance.cywt4ngax3hu.us-east-2.rds.amazonaws.com;Initial File Name=\"\";Use Encryption for Data=True;Trust Server Certificate=True;Server SPN=\"\";Authentication=\"\";Access Token=\"\"''' Connection=> SQLConnection
+SET Created_By TO $'''Jayesh_P'''
+DateTime.GetCurrentDateTime.Local DateTimeFormat: DateTime.DateTimeFormat.DateAndTime CurrentDateTime=> CurrentDateTime
+Excel.GetFirstFreeColumnRow Instance: ExcelInstance FirstFreeRow=> FirstFreeRow
+Excel.ReadFromExcel.ReadCells Instance: ExcelInstance StartColumn: $'''A''' StartRow: 21 EndColumn: $'''D''' EndRow: FirstFreeRow - 1 ReadAsText: False FirstLineIsHeader: True RangeValue=> Premarket_Data
+LOOP FOREACH Premarket_Row IN Premarket_Data
+    Database.ExecuteSqlStatement.Execute Connection: SQLConnection Statement: $'''INSERT INTO Premarket_510k  (establishment_id, device_Name, applicant, k_510_number, decision_date, created_by, created_date)
+VALUES (\'%establishment_id%\' ,\'%Premarket_Row[0]%\', \'%Premarket_Row[1]%\',\'%Premarket_Row[2]%\',\'%Premarket_Row[3]%\',\'%Created_By%\', \'%CurrentDateTime%\');''' Timeout: 30
+END
+Database.Close Connection: SQLConnection

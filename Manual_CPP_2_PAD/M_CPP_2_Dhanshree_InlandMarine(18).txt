@@ -1,0 +1,93 @@
+Pdf.ExtractTextFromPDF.ExtractText PDFFile: $'''C:\\Users\\Jayesh Patil\\Desktop\\JP1623\\Manual CPP PDF and Excel\\Arete Associates QPP.pdf''' DetectLayout: False ExtractedText=> ExtractedPDFInland
+Text.SplitText.SplitWithDelimiter Text: ExtractedPDFInland CustomDelimiter: $'''Forms Applicable To Inland Marine Coverage Part:''' IsRegEx: True Result=> Formlist
+Display.ShowMessageDialog.ShowMessage Message: Formlist Icon: Display.Icon.None Buttons: Display.Buttons.OK DefaultButton: Display.DefaultButton.Button1 IsTopMost: False ButtonPressed=> ButtonPressed35
+Text.SplitText.SplitWithDelimiter Text: Formlist[1] CustomDelimiter: $'''Page''' IsRegEx: True Result=> SplitPageList
+Display.ShowMessageDialog.ShowMessage Message: SplitPageList Icon: Display.Icon.None Buttons: Display.Buttons.OK DefaultButton: Display.DefaultButton.Button1 IsTopMost: False ButtonPressed=> ButtonPressed35
+Text.SplitText.Split Text: SplitPageList[1] StandardDelimiter: Text.StandardDelimiter.Space DelimiterTimes: 1 Result=> SplitBySpace
+Display.ShowMessageDialog.ShowMessage Message: SplitBySpace Icon: Display.Icon.None Buttons: Display.Buttons.OK DefaultButton: Display.DefaultButton.Button1 IsTopMost: False ButtonPressed=> ButtonPressed36
+Pdf.ExtractTextFromPDF.ExtractTextFromPage PDFFile: $'''C:\\Users\\Jayesh Patil\\Desktop\\JP1623\\Manual CPP PDF and Excel\\Arete Associates QPP.pdf''' PageNumber: SplitBySpace[1] - 1 DetectLayout: False ExtractedText=> ExtractedPDFText10
+Display.ShowMessageDialog.ShowMessage Message: ExtractedPDFText10 Icon: Display.Icon.None Buttons: Display.Buttons.OK DefaultButton: Display.DefaultButton.Button1 IsTopMost: False ButtonPressed=> ButtonPressed30
+Text.SplitText.SplitWithDelimiter Text: ExtractedPDFText10 CustomDelimiter: $'''Page''' IsRegEx: True Result=> ExtractedSplit
+Display.ShowMessageDialog.ShowMessage Message: ExtractedSplit Icon: Display.Icon.None Buttons: Display.Buttons.OK DefaultButton: Display.DefaultButton.Button1 IsTopMost: False ButtonPressed=> ButtonPressed34
+Text.ParseText.RegexParse Text: ExtractedPDFText10 TextToFind: $'''(?<=Inland Marine Coverages).*(\\n.*)*(?=Avenues Package Product)''' StartingPosition: 0 IgnoreCase: False OccurrencePositions=> Positions Matches=> InlandMarine
+Display.ShowMessageDialog.ShowMessage Message: ExtractedSplit[1] Icon: Display.Icon.None Buttons: Display.Buttons.OK DefaultButton: Display.DefaultButton.Button1 IsTopMost: False ButtonPressed=> ButtonPressed24
+Text.SplitText.SplitWithDelimiter Text: ExtractedSplit[1] CustomDelimiter: $'''Forms Applicable''' IsRegEx: True Result=> SplitData
+Text.SplitText.Split Text: SplitData[0] StandardDelimiter: Text.StandardDelimiter.NewLine DelimiterTimes: 1 Result=> ExtractSplit
+Display.ShowMessageDialog.ShowMessage Message: SplitData[0] Icon: Display.Icon.None Buttons: Display.Buttons.OK DefaultButton: Display.DefaultButton.Button1 IsTopMost: False ButtonPressed=> ButtonPressed39
+Excel.LaunchExcel.LaunchAndOpenUnderExistingProcess Path: $'''C:\\Users\\Jayesh Patil\\Desktop\\JP1623\\Manual CPP PDF and Excel\\Arete Associates QPP.pdf''' Visible: True ReadOnly: False Instance=> ExcelInstance2
+LOOP FOREACH CurrentItem37 IN ExtractSplit
+    IF IsNotEmpty(CurrentItem37) THEN
+        Text.ToNumber Text: Total_Terr Number=> TextAsNumber3
+        SET TextAsNumber3 TO TextAsNumber3 + CurrentItem37
+    END
+    Display.ShowMessageDialog.ShowMessage Message: CurrentItem37 Icon: Display.Icon.None Buttons: Display.Buttons.OK DefaultButton: Display.DefaultButton.Button1 IsTopMost: False ButtonPressed=> ButtonPressed38
+    Text.ParseText.RegexParse Text: CurrentItem37 TextToFind: $'''(\\$)''' StartingPosition: 0 IgnoreCase: False OccurrencePositions=> Positions Matches=> Matches
+    Display.ShowMessageDialog.ShowMessage Message: Positions.Count Icon: Display.Icon.None Buttons: Display.Buttons.OK DefaultButton: Display.DefaultButton.Button1 IsTopMost: False ButtonPressed=> ButtonPressed38
+    IF Positions.Count = 1 THEN
+        Text.SplitText.SplitWithDelimiter Text: CurrentItem37 CustomDelimiter: $'''$''' IsRegEx: False Result=> Splitby
+        Display.ShowMessageDialog.ShowMessage Message: Splitby Icon: Display.Icon.None Buttons: Display.Buttons.OK DefaultButton: Display.DefaultButton.Button1 IsTopMost: False ButtonPressed=> ButtonPressed40
+        Excel.WriteToExcel.WriteCell Instance: ExcelInstance2 Value: Splitby[0] Column: $'''Q''' Row: 2
+        Excel.WriteToExcel.WriteCell Instance: ExcelInstance2 Value: Splitby[1] Column: $'''R''' Row: 2
+        SET Total_Terr TO Total_Terr + Splitby[1]
+    END
+END
+SET InlandCount TO 2
+SET InlandCounter TO 2
+Excel.SetActiveWorksheet.ActivateWorksheetByName Instance: ExcelInstance2 Name: $'''Inland Marine'''
+Text.ParseText.RegexParseForFirstOccurrence Text: ExtractedSplit[1] TextToFind: $'''Location Building Coverage Limit Ded Premium''' StartingPosition: 0 IgnoreCase: False OccurrencePosition=> Position3 Match=> Location_Inland
+IF NotContains(Position3, -1, True) THEN
+    Text.ParseText.RegexParse Text: ExtractedSplit[1] TextToFind: $'''\\s\\d ''' StartingPosition: 0 IgnoreCase: False Matches=> LocInland
+    Text.ParseText.RegexParse Text: ExtractedSplit[1] TextToFind: $'''(?<= \\d )\\d''' StartingPosition: 0 IgnoreCase: False Matches=> BuildInland
+    Text.ParseText.RegexParse Text: ExtractedSplit[1] TextToFind: $'''(?<= \\d.\\d ).*?(?= \\$)''' StartingPosition: 0 IgnoreCase: False Matches=> CoverageInland
+    Text.ParseText.RegexParse Text: ExtractedSplit[1] TextToFind: $'''(?<= \\d \\d \\w+ \\w+ \\w+ ).*?(?= \\$)''' StartingPosition: 0 IgnoreCase: False Matches=> LimitIn
+    Text.ParseText.RegexParse Text: ExtractedSplit[1] TextToFind: $'''\\$\\d,\\d+.(?=\\$\\d{3})|(?<=\\$\\d+,\\d{3},\\d{3} ).*(?=\\$\\d,)''' StartingPosition: 0 IgnoreCase: False Matches=> DeductionIn
+    Text.ParseText.RegexParse Text: ExtractedSplit[1] TextToFind: $'''(?<=\\$\\d+,\\d+ \\$\\d,\\d{3} ).*|(?<=\\$\\d+,\\d+\\d+\\d+,\\d+ \\$\\d{2},\\d+ ).*''' StartingPosition: 0 IgnoreCase: False Matches=> PremIn
+    Text.ParseText.RegexParse Text: ExtractedSplit[1] TextToFind: $'''\\w+ \\w+ (?=\\$\\d{3})''' StartingPosition: 0 IgnoreCase: False Matches=> TerrInland
+    Text.ParseText.RegexParse Text: ExtractedSplit[1] TextToFind: $'''(?<=\\w+ \\w+ \\$)\\d{3}''' StartingPosition: 0 IgnoreCase: False Matches=> TerrPremium
+    SET Terrorism_Premium TO TerrPremium[0]
+    Text.ParseText.RegexParse Text: ExtractedSplit[1] TextToFind: $'''(?<= \\w{7} \\$)\\d,\\d{3}''' StartingPosition: 0 IgnoreCase: False Matches=> TotalInland
+    SET Total_Inland TO TotalInland[0]
+    Text.Replace Text: PremIn TextToFind: $'''\\r?\\n''' IsRegEx: True IgnoreCase: False ReplaceWith: $'''%''%''' ActivateEscapeSequences: False Result=> Replaced25
+    Text.SplitText.SplitWithDelimiter Text: Replaced25 CustomDelimiter: $'''$''' IsRegEx: False Result=> SplitPrem
+    SET Total_of_Premium TO 0
+    SET Inland_index TO 0
+    LOOP FOREACH CurrentItem34 IN SplitPrem
+        IF IsNotEmpty(CurrentItem34) THEN
+            SET Total_of_Premium TO Total_of_Premium + CurrentItem34
+        END
+        IF LocInland.Count = Inland_index THEN
+            EXIT LOOP
+        ELSE
+            Excel.WriteToExcel.WriteCell Instance: ExcelInstance2 Value: LocInland[Inland_index] Column: $'''A''' Row: InlandCount
+            Display.ShowMessageDialog.ShowMessage Message: LocInland[Inland_index] Icon: Display.Icon.None Buttons: Display.Buttons.OK DefaultButton: Display.DefaultButton.Button1 IsTopMost: False ButtonPressed=> ButtonPressed26
+            Excel.WriteToExcel.WriteCell Instance: ExcelInstance2 Value: BuildInland[Inland_index] Column: $'''B''' Row: InlandCount
+            Excel.WriteToExcel.WriteCell Instance: ExcelInstance2 Value: CoverageInland[Inland_index] Column: $'''C''' Row: InlandCount
+            Excel.WriteToExcel.WriteCell Instance: ExcelInstance2 Value: LimitIn[Inland_index] Column: $'''D''' Row: InlandCount
+            Excel.WriteToExcel.WriteCell Instance: ExcelInstance2 Value: DeductionIn[Inland_index] Column: $'''E''' Row: InlandCount
+            Excel.WriteToExcel.WriteCell Instance: ExcelInstance2 Value: PremIn[Inland_index] Column: $'''F''' Row: InlandCount
+            Variables.IncreaseVariable Value: InlandCount IncrementValue: 1
+            Variables.IncreaseVariable Value: Inland_index IncrementValue: 1
+        END
+    END
+END
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance2 Value: TerrInland Column: $'''Q''' Row: 2
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance2 Value: TerrPremium Column: $'''R''' Row: 2
+SET Total_of_Premium TO Total_of_Premium + Terrorism_Premium
+IF IsNotEmpty(Total_Inland) THEN
+    Text.ToNumber Text: Total_Inland Number=> TextAsNumber2
+    SET Additional_of_minimum_Premium TO TextAsNumber2 - Total_of_Premium
+END
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance2 Value: $'''Additional Minimum Premium for Inland Marine''' Column: $'''T''' Row: 1
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance2 Value: Additional_of_minimum_Premium Column: $'''U''' Row: 2
+Display.ShowMessageDialog.ShowMessage Message: ExtractedPDFText10 Icon: Display.Icon.None Buttons: Display.Buttons.OK DefaultButton: Display.DefaultButton.Button1 IsTopMost: False ButtonPressed=> ButtonPressed37
+Text.ParseText.RegexParse Text: ExtractedPDFText10 TextToFind: $'''\\w+ \\d+ \\d+ |\\w{2} \\d{4}''' StartingPosition: 0 IgnoreCase: False OccurrencePositions=> Positions Matches=> FormInland
+Text.ParseText.RegexParse Text: ExtractedPDFText10 TextToFind: $'''\\d{2}/\\d{2} ''' StartingPosition: 0 IgnoreCase: False Matches=> InlandDate
+Text.ParseText.RegexParse Text: ExtractedPDFText10 TextToFind: $'''(?<=\\d{2}/\\d{2} ).*''' StartingPosition: 0 IgnoreCase: False Matches=> DescInland
+SET Counter_index TO 0
+LOOP FOREACH CurrentItem35 IN FormInland
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance2 Value: FormInland[Counter_index] Column: $'''K''' Row: InlandCounter
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance2 Value: InlandDate[Counter_index] Column: $'''L''' Row: InlandCounter
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance2 Value: DescInland[Counter_index] Column: $'''M''' Row: InlandCounter
+    Variables.IncreaseVariable Value: InlandCounter IncrementValue: 1
+    Variables.IncreaseVariable Value: Counter_index IncrementValue: 1
+END

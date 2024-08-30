@@ -1,0 +1,69 @@
+**REGION Process_Log_Region
+DateTime.GetCurrentDateTime.Local DateTimeFormat: DateTime.DateTimeFormat.DateAndTime CurrentDateTime=> CurrentDateTime2_PL
+Text.ConvertDateTimeToText.FromCustomDateTime DateTime: CurrentDateTime2_PL CustomFormat: $'''dd/MM/yyyy hh:mm:ss tt''' Result=> FormattedDateTime
+Text.ConvertDateTimeToText.FromCustomDateTime DateTime: CurrentDateTime2_PL CustomFormat: $'''dd/MM/yyyy''' Result=> CustomDate
+SET LogID TO LogIDS[18]
+SET Log_Type TO LogType[0]
+SET Item_Status TO ItemStatus[0]
+SET Subflow TO SubflowNames[22]
+SET Descrip TO $'''%Subflow% %In_Description[0]%'''
+SET ExceptionType TO $'''%''%'''
+CALL Global_Logs
+Text.Replace Text: CustomDate TextToFind: $'''/''' IsRegEx: False IgnoreCase: False ReplaceWith: $'''_''' ActivateEscapeSequences: False Result=> CustomDate
+SET Subflow TO SubflowNames[22]
+SET Descrip TO In_Description[0]
+SET ProcessLog TO $'''**********************************************************
+Policy: %Policy_Symbol%-%Policy_Number%-%Policy_Mod%
+Date And Time Flow Started: %FormattedDateTime%
+SubflowName: %Subflow%
+Description: %Subflow%_%Descrip%'''
+File.WriteText File: $'''C:\\Users\\Jayesh Patil\\OneDrive - RABBIT AND TORTOISE TECHNOLOGY SOLUTIONS PRIVATE LIMITED\\Desktop\\Manual_CPP\\Manual_CPP_Logs\\Process Logs\\ProcesLog_%CustomDate%''' TextToWrite: ProcessLog AppendNewLine: True IfFileExists: File.IfFileExists.Append Encoding: File.FileEncoding.Unicode
+**ENDREGION
+SET QPP_Extraction TO $'''Completed'''
+DateTime.GetCurrentDateTime.Local DateTimeFormat: DateTime.DateTimeFormat.DateAndTime CurrentDateTime=> CurrentDateTime
+Text.Replace Text: CurrentDateTime TextToFind: $'''/''' IsRegEx: False IgnoreCase: False ReplaceWith: $'''_''' ActivateEscapeSequences: False Result=> CurrentDateTime
+Text.Replace Text: CurrentDateTime TextToFind: $''':''' IsRegEx: False IgnoreCase: False ReplaceWith: $'''_''' ActivateEscapeSequences: False Result=> CurrentDateTime
+Folder.Create FolderPath: OutputFilePath FolderName: Policy_Number Folder=> NewFolder
+Excel.CloseExcel.CloseAndSaveAs Instance: ExcelInstance DocumentFormat: Excel.ExcelFormat.FromExtension DocumentPath: $'''%NewFolder%\\%Policy_Number%.xlsx'''
+File.Move Files: File_Path Destination: NewFolder IfFileExists: File.IfExists.DoNothing MovedFiles=> MovedFiles
+SET Output_Excel TO $'''%NewFolder%\\%Policy_Number%.xlsx'''
+SET Exception TO $'''False'''
+IF IsEmpty(Business_Exception) THEN
+    SET Success_Mail_Msg TO $'''The bot has successfully ran the \'Manual CPP\' process for Policy No %Policy_Number%.
+
+Please find below the output excel document.'''
+    Text.Replace Text: SuccessMailBody TextToFind: $'''\'Success_Mail_Msg\'''' IsRegEx: False IgnoreCase: False ReplaceWith: Success_Mail_Msg ActivateEscapeSequences: False Result=> Replaced3
+    Text.Replace Text: Replaced3 TextToFind: $'''\'Business_Exception\'''' IsRegEx: False IgnoreCase: False ReplaceWith: Business_Exception ActivateEscapeSequences: False Result=> Replaced3
+ELSE
+    SET ABC TO Business_Exception
+    Text.Replace Text: Business_Exception TextToFind: $'''\\s''' IsRegEx: True IgnoreCase: False ReplaceWith: $''',''' ActivateEscapeSequences: False Result=> Business_Exception
+    Text.ParseText.RegexParseForFirstOccurrence Text: Business_Exception TextToFind: $'''(?<=,).*''' StartingPosition: 0 IgnoreCase: False Match=> Business_Exception
+    SET Business_Exception TO $'''For the form %Business_Exception%, the bot did not find any data in attached QPP.'''
+    SET Success_Mail_Msg TO $'''The bot has successfully ran the \'Manual CPP\' process for Policy No %Policy_Number%.
+
+Please find below the output excel document.'''
+    Text.Replace Text: SuccessMailBody TextToFind: $'''\'Business_Exception\'''' IsRegEx: False IgnoreCase: False ReplaceWith: Business_Exception ActivateEscapeSequences: False Result=> Replaced3
+    Text.Replace Text: Replaced3 TextToFind: $'''\'Success_Mail_Msg\'''' IsRegEx: False IgnoreCase: False ReplaceWith: Success_Mail_Msg ActivateEscapeSequences: False Result=> Replaced3
+    SET Replaced3 TO Replaced3
+END
+CALL SendMail_Flow
+IF IsEmpty(Final_Status) THEN
+    SET Final_Status TO $'''Success'''
+END
+DateTime.GetCurrentDateTime.Local DateTimeFormat: DateTime.DateTimeFormat.DateAndTime CurrentDateTime=> EndDateTime
+Text.ConvertDateTimeToText.FromCustomDateTime DateTime: EndDateTime CustomFormat: $'''hh:mm:ss''' Result=> End_Time
+**REGION Process_Log
+DateTime.GetCurrentDateTime.Local DateTimeFormat: DateTime.DateTimeFormat.DateAndTime CurrentDateTime=> CurrentDateTime2_PL
+Text.ConvertDateTimeToText.FromCustomDateTime DateTime: CurrentDateTime2_PL CustomFormat: $'''dd/MM/yyyy hh:mm:ss tt''' Result=> FormattedDateTime
+Text.ConvertDateTimeToText.FromCustomDateTime DateTime: CurrentDateTime2_PL CustomFormat: $'''dd/MM/yyyy''' Result=> CustomDate
+Text.Replace Text: CustomDate TextToFind: $'''/''' IsRegEx: False IgnoreCase: False ReplaceWith: $'''_''' ActivateEscapeSequences: False Result=> CustomDate
+SET Subflow TO SubflowNames[22]
+SET Descrip TO In_Description[1]
+SET ProcessLog TO $'''**********************************************************
+Policy: %Policy_Symbol%-%Policy_Number%-%Policy_Mod%
+Date And Time Flow Started: %FormattedDateTime%
+SubflowName: %Subflow%
+Description: %Subflow% %Descrip%'''
+File.WriteText File: $'''C:\\Users\\Jayesh Patil\\OneDrive - RABBIT AND TORTOISE TECHNOLOGY SOLUTIONS PRIVATE LIMITED\\Desktop\\Manual_CPP\\Manual_CPP_Logs\\Process Logs\\ProcesLog_%CustomDate%''' TextToWrite: ProcessLog AppendNewLine: True IfFileExists: File.IfFileExists.Append Encoding: File.FileEncoding.Unicode
+**ENDREGION
+CALL Day_End_Summary

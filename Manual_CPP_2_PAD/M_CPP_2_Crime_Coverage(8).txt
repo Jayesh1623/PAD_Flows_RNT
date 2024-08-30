@@ -1,0 +1,41 @@
+Excel.SetActiveWorksheet.ActivateWorksheetByName Instance: ExcelInstance Name: $'''Crime Coverage'''
+Text.ParseText.RegexParseForFirstOccurrence Text: ExtractedPDFText TextToFind: $'''(?<=Crime Coverages Included In Quote Proposal\\s).*(\\n.*)*''' StartingPosition: 0 IgnoreCase: False Match=> Crime_Coverage_Data
+Text.ParseText.RegexParseForFirstOccurrence Text: Crime_Coverage_Data TextToFind: $'''(?<=Total Quoted Commercial Crime Premium\\s).*''' StartingPosition: 0 IgnoreCase: False Match=> Total_Quoted_Commercial_Crime_Premium
+IF IsEmpty(Crime_Coverage_Data) THEN
+    GOTO LabelA
+END
+Text.ParseText.RegexParse Text: Crime_Coverage_Data TextToFind: $'''(?<=Page\\s)\\d+''' StartingPosition: 0 IgnoreCase: False Matches=> Matches
+LOOP FOREACH CurrentItem IN Matches
+    EXIT LOOP
+END
+SET A TO CurrentItem - 1
+Pdf.ExtractTablesFromPDF.ExtractTablesFromPage PDFFile: Currentpdffile PageNumber: A MultiPageTables: True SetFirstRowAsHeader: True ExtractedPDFTables=> ExtractedPDFTables
+SET Index TO 0
+SET RowIndex TO 2
+LOOP FOREACH CurrentITable IN ExtractedPDFTables
+    IF Index = 1 THEN
+        Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: CurrentITable.DataTable.ColumnHeadersRow Column: $'''I''' Row: 1
+        Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: CurrentITable.DataTable Column: $'''I''' Row: 2
+    ELSE
+        Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''Coverage''' Column: $'''A''' Row: 1
+        Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''Premium''' Column: $'''B''' Row: 1
+        Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''Limit''' Column: $'''C''' Row: 1
+        Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''Ded''' Column: $'''D''' Row: 1
+        Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''Building''' Column: $'''E''' Row: 1
+        Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''Location''' Column: $'''F''' Row: 1
+        LOOP FOREACH CurrentItem IN CurrentITable.DataTable
+            Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: CurrentItem[2] Column: $'''A''' Row: RowIndex
+            Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: CurrentItem[5] Column: $'''B''' Row: RowIndex
+            Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: CurrentItem[3] Column: $'''C''' Row: RowIndex
+            Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: CurrentItem[4] Column: $'''D''' Row: RowIndex
+            Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: CurrentItem[1] Column: $'''E''' Row: RowIndex
+            Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: CurrentItem[0] Column: $'''F''' Row: RowIndex
+            SET RowIndex TO RowIndex + 1
+        END
+    END
+    Variables.IncreaseVariable Value: Index IncrementValue: 1
+END
+Excel.GetFirstFreeRowOnColumn Instance: ExcelInstance Column: $'''A''' FirstFreeRowOnColumn=> FreeRowColumn_A
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''Total Quoted Commercial Crime Premium''' Column: $'''A''' Row: FreeRowColumn_A
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Total_Quoted_Commercial_Crime_Premium.Trimmed Column: $'''B''' Row: FreeRowColumn_A
+LABEL LabelA

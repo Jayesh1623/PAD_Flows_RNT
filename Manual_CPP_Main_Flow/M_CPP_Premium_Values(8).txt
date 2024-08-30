@@ -1,0 +1,94 @@
+**REGION Process_Log_Region
+DateTime.GetCurrentDateTime.Local DateTimeFormat: DateTime.DateTimeFormat.DateAndTime CurrentDateTime=> CurrentDateTime2_PL
+Text.ConvertDateTimeToText.FromCustomDateTime DateTime: CurrentDateTime2_PL CustomFormat: $'''dd/MM/yyyy hh:mm:ss tt''' Result=> FormattedDateTime
+Text.ConvertDateTimeToText.FromCustomDateTime DateTime: CurrentDateTime2_PL CustomFormat: $'''dd/MM/yyyy''' Result=> CustomDate
+SET LogID TO LogIDS[7]
+SET Log_Type TO LogType[0]
+SET Item_Status TO ItemStatus[0]
+SET Subflow TO SubflowNames[7]
+SET Descrip TO $'''%Subflow% %In_Description[0]%'''
+SET ExceptionType TO $'''%''%'''
+CALL Global_Logs
+Text.Replace Text: CustomDate TextToFind: $'''/''' IsRegEx: False IgnoreCase: False ReplaceWith: $'''_''' ActivateEscapeSequences: False Result=> CustomDate
+SET Subflow TO SubflowNames[7]
+SET Descrip TO In_Description[0]
+SET ProcessLog TO $'''**********************************************************
+Policy: %Policy_Symbol%-%Policy_Number%-%Policy_Mod%
+Date And Time Flow Started: %FormattedDateTime%
+SubflowName: %Subflow%
+Description: %Subflow% %Descrip%'''
+File.WriteText File: $'''C:\\Users\\Jayesh Patil\\OneDrive - RABBIT AND TORTOISE TECHNOLOGY SOLUTIONS PRIVATE LIMITED\\Desktop\\Manual_CPP\\Manual_CPP_Logs\\Process Logs\\ProcesLog_%CustomDate%''' TextToWrite: ProcessLog AppendNewLine: True IfFileExists: File.IfFileExists.Append Encoding: File.FileEncoding.Unicode
+**ENDREGION
+Text.ParseText.RegexParse Text: ExtractedPDFText TextToFind: $'''.*(?<=Occupancy Code: ).*(\\n?.*?)*?(?=Premium:).*''' StartingPosition: 0 IgnoreCase: False Matches=> All_Fields
+Pdf.ExtractTextFromPDF.ExtractText PDFFile: File_Path DetectLayout: True ExtractedText=> StructuredPDFText
+Excel.SetActiveWorksheet.ActivateWorksheetByName Instance: ExcelInstance Name: $'''Premium values'''
+Text.ParseText.RegexParseForFirstOccurrence Text: $'''\\%StructuredPDFText%''' TextToFind: $'''(?<=Effective Date:.*)\\d+\\/\\d+\\/\\d+(?=\\s.*Expiration Date:)''' StartingPosition: 0 IgnoreCase: False Match=> Effective_Date
+IF IsEmpty(Effective_Date) THEN
+    Text.ParseText.RegexParseForFirstOccurrence Text: $'''\\%StructuredPDFText%''' TextToFind: $'''(?<=Effective Date:\\s.*)\\d+\\/\\d+\\/\\d+''' StartingPosition: 0 IgnoreCase: False Match=> Effective_Date
+END
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Effective_Date.Trimmed Column: $'''B''' Row: 1
+Text.ParseText.RegexParseForFirstOccurrence Text: StructuredPDFText TextToFind: $'''(?<=Expiration Date:.*)\\d+.*''' StartingPosition: 0 IgnoreCase: False Match=> Expiration_Date
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Expiration_Date.Trimmed Column: $'''B''' Row: 2
+Text.ParseText.RegexParseForFirstOccurrence Text: ExtractedPDFText TextToFind: $'''(?<=Prepared For:.*\\n).*(\\n.*)*(?=Presented By:)''' StartingPosition: 0 IgnoreCase: False Match=> Insured_Name_Address
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Insured_Name_Address.Trimmed Column: $'''B''' Row: 3
+Text.ParseText.RegexParseForFirstOccurrence Text: ExtractedPDFText TextToFind: $'''(?<=Presented By:.*\\s).*(\\n?.*?)*?(?=A Commercial Insurance Program)''' StartingPosition: 0 IgnoreCase: False Match=> Agent_Name_Address
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Agent_Name_Address.Trimmed Column: $'''B''' Row: 4
+Text.ParseText.RegexParseForFirstOccurrence Text: ExtractedPDFText TextToFind: $'''(?<=Total Quoted Commercial Property Premium:\\s).*''' StartingPosition: 0 IgnoreCase: False Match=> Commercial_Property_Coverage
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Commercial_Property_Coverage.Trimmed Column: $'''B''' Row: 5
+Text.ParseText.RegexParseForFirstOccurrence Text: ExtractedPDFText TextToFind: $'''(?<=Total Quoted Commercial General Liability Premium:\\s).*''' StartingPosition: 0 IgnoreCase: False Match=> Commercial_General_Liability_Coverage
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Commercial_General_Liability_Coverage.Trimmed Column: $'''B''' Row: 6
+Text.ParseText.RegexParseForFirstOccurrence Text: ExtractedPDFText TextToFind: $'''(?<=Total Quoted Commercial Inland Marine Premium:\\s).*''' StartingPosition: 0 IgnoreCase: False Match=> Commercial_Inland_Marine_Coverage
+IF IsEmpty(Commercial_Inland_Marine_Coverage) THEN
+    SET Commercial_Inland_Marine_Coverage TO $'''Not Covered'''
+END
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Commercial_Inland_Marine_Coverage Column: $'''B''' Row: 7
+Text.ParseText.RegexParseForFirstOccurrence Text: ExtractedPDFText TextToFind: $'''(?<=Total Quoted Commercial Crime Premium:\\s).*''' StartingPosition: 0 IgnoreCase: False Match=> Commercial_Crime_Coverage
+IF IsEmpty(Commercial_Crime_Coverage) THEN
+    SET Commercial_Crime_Coverage TO $'''Not Covered'''
+END
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Commercial_Crime_Coverage.Trimmed Column: $'''B''' Row: 8
+Text.ParseText.RegexParseForFirstOccurrence Text: ExtractedPDFText TextToFind: $'''(?<=Commercial Auto Coverage:\\s)\\$.*''' StartingPosition: 0 IgnoreCase: False Match=> Commercial_Auto_Coverage
+IF IsEmpty(Commercial_Auto_Coverage) THEN
+    SET Commercial_Auto_Coverage TO $'''Not Covered'''
+END
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Commercial_Auto_Coverage.Trimmed Column: $'''B''' Row: 9
+Text.ParseText.RegexParseForFirstOccurrence Text: ExtractedPDFText TextToFind: $'''(?<=Total Surcharges Premium:\\s)\\$.*''' StartingPosition: 0 IgnoreCase: False Match=> Total_Surcharges_Premium
+IF IsEmpty(Total_Surcharges_Premium) THEN
+    SET Total_Surcharges_Premium TO $'''N/A'''
+END
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Total_Surcharges_Premium.Trimmed Column: $'''B''' Row: 10
+Text.ParseText.RegexParseForFirstOccurrence Text: ExtractedPDFText TextToFind: $'''(?<=Additional Premium For Policy Minimum:\\s)\\$.*''' StartingPosition: 0 IgnoreCase: False Match=> Additional_Premium_For_Policy_Minimum
+IF IsEmpty(Additional_Premium_For_Policy_Minimum) THEN
+    SET Additional_Premium_For_Policy_Minimum TO $'''N/A'''
+END
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Additional_Premium_For_Policy_Minimum.Trimmed Column: $'''B''' Row: 11
+Text.ParseText.RegexParseForFirstOccurrence Text: ExtractedPDFText TextToFind: $'''(?<=Total Quoted Commercial Policy Premium:\\s).*''' StartingPosition: 0 IgnoreCase: False Match=> Total
+Text.Trim Text: Total TrimOption: Text.TrimOption.Both TrimmedText=> Total
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Total Column: $'''B''' Row: 12
+Text.ParseText.RegexParseForFirstOccurrence Text: ExtractedPDFText TextToFind: $'''(?<=Total Quoted Professional Liability Premium:\\s).*''' StartingPosition: 0 IgnoreCase: False Match=> Commercial_Professional_Liability_Premium
+IF IsEmpty(Commercial_Professional_Liability_Premium) THEN
+    SET Commercial_Professional_Liability_Premium TO $'''Not Covered'''
+END
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Commercial_Professional_Liability_Premium.Trimmed Column: $'''B''' Row: 13
+Text.ParseText.RegexParseForFirstOccurrence Text: ExtractedPDFText TextToFind: $'''(?<=Contractors’ Equipment Coverage - Leased Or Rented From Others Premium\\s)\\$\\d+''' StartingPosition: 0 IgnoreCase: False Match=> Contractors_Equipment_Coverage_Leased_Or_Rented_From_Others
+IF IsEmpty(Contractors_Equipment_Coverage_Leased_Or_Rented_From_Others) THEN
+    SET Contractors_Equipment_Coverage_Leased_Or_Rented_From_Others TO $'''Not Covered'''
+END
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Contractors_Equipment_Coverage_Leased_Or_Rented_From_Others.Trimmed Column: $'''B''' Row: 14
+Text.ParseText.RegexParseForFirstOccurrence Text: StructuredPDFText TextToFind: $'''[A-z].*(?=\\sQuote\\s\\W+\\s)''' StartingPosition: 0 IgnoreCase: False Match=> Coverage
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Coverage.Trimmed Column: $'''D''' Row: 1
+Text.ParseText.RegexParseForFirstOccurrence Text: StructuredPDFText TextToFind: $'''(?<=Group Number:\\s+)[A-Z]+''' StartingPosition: 0 IgnoreCase: False Match=> Group_No
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Group_No.Trimmed Column: $'''D''' Row: 3
+Text.ParseText.RegexParseForFirstOccurrence Text: ExtractedPDFText TextToFind: $'''\\d+(?=\\r\\n[A-Z]{3}\\d+)''' StartingPosition: 0 IgnoreCase: False Match=> Agency_Code
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Agency_Code.Trimmed Column: $'''D''' Row: 2
+Text.ParseText.RegexParseForFirstOccurrence Text: ExtractedPDFText TextToFind: $'''(?<=Total Quoted Cyber Liability Premium:\\s)\\$\\d+''' StartingPosition: 0 IgnoreCase: False Match=> Total_Quoted_Cyber_Liability_Premium
+IF IsEmpty(Total_Quoted_Cyber_Liability_Premium) THEN
+    SET Total_Quoted_Cyber_Liability_Premium TO $'''Not Covered'''
+END
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Total_Quoted_Cyber_Liability_Premium.Trimmed Column: $'''G''' Row: 1
+Text.ParseText.RegexParseForFirstOccurrence Text: ExtractedPDFText TextToFind: $'''(?<=Total Quoted Product Recall Premium:\\s)\\$.*''' StartingPosition: 0 IgnoreCase: False Match=> Total_Quoted_Product_Recall_Premium
+IF IsEmpty(Total_Quoted_Product_Recall_Premium) THEN
+    SET Total_Quoted_Product_Recall_Premium TO $'''Not Covered'''
+END
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Total_Quoted_Product_Recall_Premium.Trimmed Column: $'''G''' Row: 2
+CALL Premium_Values2

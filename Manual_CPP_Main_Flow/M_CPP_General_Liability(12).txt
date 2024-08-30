@@ -1,0 +1,36 @@
+Pdf.ExtractTextFromPDF.ExtractText PDFFile: File_Path DetectLayout: True ExtractedText=> Structured_General_Liability_Data
+Text.ParseText.RegexParseForFirstOccurrence Text: Structured_General_Liability_Data TextToFind: $'''.*(?<=Employee Benefit Liability)([\\s\\S]+?)(?= CGL Enhancement).*''' StartingPosition: 0 IgnoreCase: False Match=> Match3
+Text.Replace Text: Match3 TextToFind: $''',''' IsRegEx: False IgnoreCase: False ReplaceWith: $'''%''%''' ActivateEscapeSequences: False Result=> Match3
+Text.Replace Text: Match3 TextToFind: $'''\\$.*(?=\\$.*)|\\d+.*(?=\\$.*)''' IsRegEx: True IgnoreCase: False ReplaceWith: $'''%''%''' ActivateEscapeSequences: False Result=> Match3
+Text.Replace Text: Match3 TextToFind: $'''.*(?<=Aggregate)''' IsRegEx: True IgnoreCase: False ReplaceWith: $'''%''%''' ActivateEscapeSequences: False Result=> Match3
+Text.Replace Text: Match3 TextToFind: $'''Total.*\\$.*(\\n.*?)*?(?=.*\\$)|Total.*(\\n.*)''' IsRegEx: True IgnoreCase: False ReplaceWith: $'''%''%''' ActivateEscapeSequences: False Result=> Match3
+IF Contains(Match3, $'''Avenues Package Product''', True) THEN
+    Text.Replace Text: Match3 TextToFind: $'''\\d{7}(\\n.*)*(?=Coverages).*''' IsRegEx: True IgnoreCase: False ReplaceWith: $'''%''%''' ActivateEscapeSequences: False Result=> Match3
+END
+Text.ParseText.RegexParse Text: Match3 TextToFind: $'''.*\\$.*(\\n.*?)*?(?=.*\\$)|.*\\$.*''' StartingPosition: 0 IgnoreCase: False Matches=> Matches
+SET RowIndex TO 2
+LOOP FOREACH CurrentItem IN Matches
+    IF Contains(CurrentItem, $'''Total''', True) THEN
+        Text.Replace Text: CurrentItem TextToFind: $'''\\s*Total.*''' IsRegEx: True IgnoreCase: False ReplaceWith: $'''%''%''' ActivateEscapeSequences: False Result=> CurrentItem
+    END
+    Text.Replace Text: CurrentItem TextToFind: $'''\\$.*''' IsRegEx: True IgnoreCase: False ReplaceWith: $'''%''%''' ActivateEscapeSequences: False Result=> Title
+    Text.Trim Text: Title TrimOption: Text.TrimOption.Both TrimmedText=> Title
+    Text.ParseText.RegexParse Text: CurrentItem TextToFind: $'''\\$.*''' StartingPosition: 0 IgnoreCase: False Matches=> Value
+    IF Contains(Title.Trimmed, $'''Total''', True) THEN
+        Text.Replace Text: Title TextToFind: $'''\\s*Total.*''' IsRegEx: True IgnoreCase: False ReplaceWith: $'''%''%''' ActivateEscapeSequences: False Result=> Title
+    ELSE IF Contains(Title.Trimmed, $'''Auto''', True) THEN
+        NEXT LOOP
+    END
+    IF Contains(Title, $'''Benefit''', True) THEN
+        Text.Replace Text: Title TextToFind: $'''Benefit''' IsRegEx: False IgnoreCase: False ReplaceWith: $'''Benefits''' ActivateEscapeSequences: False Result=> Title
+    END
+    IF Contains(Title, $'''Liability''', True) THEN
+        Text.Replace Text: Title TextToFind: $'''Liability''' IsRegEx: False IgnoreCase: False ReplaceWith: $'''Coverage''' ActivateEscapeSequences: False Result=> Title
+    END
+    IF Contains(Title, $'''Terrorism Premiums''', True) THEN
+        Text.Replace Text: Title TextToFind: $'''Premiums''' IsRegEx: False IgnoreCase: False ReplaceWith: $'''Premium''' ActivateEscapeSequences: False Result=> Title
+    END
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Title.Trimmed Column: $'''M''' Row: RowIndex
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Value Column: $'''N''' Row: RowIndex
+    Variables.IncreaseVariable Value: RowIndex IncrementValue: 1
+END

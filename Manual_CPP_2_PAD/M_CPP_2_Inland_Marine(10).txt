@@ -1,0 +1,74 @@
+Excel.SetActiveWorksheet.ActivateWorksheetByName Instance: ExcelInstance Name: $'''Inland Marine'''
+Text.ParseText.RegexParse Text: ExtractedPDFText TextToFind: $'''(?<=Inland Marine Coverages Included In Quote Proposal\\s)([\\s\\S]+?)(?=Avenues Package Product)''' StartingPosition: 0 IgnoreCase: False Matches=> Match
+IF IsEmpty(Match) THEN
+    Text.ParseText.RegexParseForFirstOccurrence Text: ExtractedPDFText TextToFind: $'''(?<=Forms Applicable To Inland Marine Coverage Part:\\s)([\\s\\S]+?)(?=Avenues Package Product)''' StartingPosition: 0 IgnoreCase: False Match=> Match
+END
+Text.ParseText.RegexParseForFirstOccurrence Text: ExtractedPDFText TextToFind: $'''(?<=Inland Marine Coverages Included In Quote Proposal\\s).*(\\n.*)*(?=Total Quoted Commercial Inland Marine Premium).*''' StartingPosition: 0 IgnoreCase: False Match=> Match2
+IF IsEmpty(Match2) THEN
+    Text.ParseText.RegexParseForFirstOccurrence Text: ExtractedPDFText TextToFind: $'''.*(?<=Miscellaneous/Optional General Liability Coverages).*(\\n.*)*(?=Total Quoted Commercial Inland Marine Premium).*\\d+''' StartingPosition: 0 IgnoreCase: False Match=> Match2
+    Text.Replace Text: Match2 TextToFind: $'''(?<=Miscellaneous/Optional General Liability Coverages\\s).*(\\n.*)*(?=Date).*''' IsRegEx: True IgnoreCase: False ReplaceWith: $'''%''%''' ActivateEscapeSequences: False Result=> Match2
+END
+IF IsEmpty(Match2) THEN
+    GOTO 'Label END'
+END
+Text.ParseText.RegexParse Text: Match2 TextToFind: $'''\\d+(?=\\s\\d+\\s.*\\s)''' StartingPosition: 0 IgnoreCase: True Matches=> Location
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Location Column: $'''A''' Row: 2
+Text.ParseText.RegexParse Text: Match2 TextToFind: $'''(?<=\\s\\d+\\s)\\d+(?=\\s.*\\s)''' StartingPosition: 0 IgnoreCase: False Matches=> Building
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Building Column: $'''B''' Row: 2
+Text.ParseText.RegexParse Text: Match2 TextToFind: $'''(?<=\\d+\\s\\d+\\s)[A-z].*(\\n.*\\$.*)?(?=\\s\\$.*\\s\\$.*\\s\\$)''' StartingPosition: 0 IgnoreCase: False Matches=> Inland_Coverage
+DISABLE Text.ParseText.RegexParse Text: Match2 TextToFind: $'''(?<=\\d+\\s\\d+\\s)[A-z].*(\\s\\$.*)?(?=\\s\\$.*\\s\\$.*\\s\\$)''' StartingPosition: 0 IgnoreCase: False Matches=> Inland_Coverage
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Inland_Coverage Column: $'''C''' Row: 2
+Text.ParseText.RegexParse Text: Match2 TextToFind: $'''\\$.*(?=\\$.*\\s\\$.*)''' StartingPosition: 0 IgnoreCase: False OccurrencePositions=> Positions Matches=> Limit
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Limit Column: $'''D''' Row: 2
+Text.ParseText.RegexParse Text: Match2 TextToFind: $'''(?<=\\$.*)\\$.*(?=\\s\\$\\d+)''' StartingPosition: 0 IgnoreCase: False Matches=> Ded
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Ded Column: $'''E''' Row: 2
+Text.ParseText.RegexParse Text: Match2 TextToFind: $'''(?<=\\$.*\\$.*)\\$.*''' StartingPosition: 0 IgnoreCase: False Matches=> Premium
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Premium Column: $'''F''' Row: 2
+Text.ParseText.RegexParse Text: Match TextToFind: $'''.*(?=\\s\\d+\\/\\d+).*(\\n.*)*?''' StartingPosition: 0 IgnoreCase: False Matches=> Code_List
+Text.SplitText.SplitWithDelimiter Text: Premium CustomDelimiter: $'''$''' IsRegEx: False Result=> Premium
+SET B TO 0
+LOOP FOREACH CurrentItem IN Premium
+    Text.Replace Text: CurrentItem TextToFind: $'''$''' IsRegEx: False IgnoreCase: False ReplaceWith: $'''%''%''' ActivateEscapeSequences: False Result=> CurrentItem
+    IF IsEmpty(CurrentItem) THEN
+        NEXT LOOP
+    END
+    Text.ToNumber Text: CurrentItem Number=> CurrentItem
+    SET B TO B + CurrentItem
+END
+SET RowIndex TO 2
+LOOP FOREACH CurrentItem IN Code_list
+    Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''.*(?=\\s\\d+\\/\\d+)''' StartingPosition: 0 IgnoreCase: False Match=> Form_Number
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Form_Number.Trimmed Column: $'''K''' Row: RowIndex
+    Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''(?<=\\d+\\s)\\d+\\/\\d+(?=\\s)''' StartingPosition: 0 IgnoreCase: False Match=> Edition_Date
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Edition_Date.Trimmed Column: $'''L''' Row: RowIndex
+    Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''(?<=\\s\\d+\\/\\d+\\s).*(\\n.*)*?''' StartingPosition: 0 IgnoreCase: False Match=> Description
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Description.Trimmed Column: $'''M''' Row: RowIndex
+    Variables.IncreaseVariable Value: RowIndex IncrementValue: 1
+END
+Text.Replace Text: Match2 TextToFind: $'''(\\n.*)*.*(?=\\d+\\s\\d+\\s[A-z].*).*''' IsRegEx: True IgnoreCase: False ReplaceWith: $'''%''%''' ActivateEscapeSequences: False Result=> Match2
+Text.ParseText.RegexParse Text: Match2 TextToFind: $'''[A-z].*(?=\\$).*''' StartingPosition: 0 IgnoreCase: False Matches=> Inland_Fields
+Excel.GetFirstFreeRowOnColumn Instance: ExcelInstance Column: $'''Q''' FirstFreeRowOnColumn=> FirstFreeRowOnColumn_Q
+Variables.CreateNewList List=> Temp
+LOOP FOREACH CurrentField IN Inland_Fields
+    IF StartsWith(CurrentField, $'''Total''', True) THEN
+        NEXT LOOP
+    END
+    Text.ParseText.RegexParseForFirstOccurrence Text: CurrentField TextToFind: $'''.*(?=\\s\\$)''' StartingPosition: 0 IgnoreCase: False Match=> Title
+    Text.ParseText.RegexParseForFirstOccurrence Text: CurrentField TextToFind: $'''(?<=[A-z]\\s)\\$.*''' StartingPosition: 0 IgnoreCase: False Match=> Value
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Title.Trimmed Column: $'''Q''' Row: FirstFreeRowOnColumn_Q
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Value.Trimmed Column: $'''R''' Row: FirstFreeRowOnColumn_Q
+    Variables.AddItemToList Item: Value List: Temp
+    Variables.IncreaseVariable Value: FirstFreeRowOnColumn_Q IncrementValue: 1
+END
+SET A TO 0
+LOOP FOREACH CurrentItem IN Temp
+    Text.Replace Text: CurrentItem TextToFind: $'''$''' IsRegEx: False IgnoreCase: False ReplaceWith: $'''%''%''' ActivateEscapeSequences: False Result=> CurrentItem
+    SET A TO A + CurrentItem
+END
+SET Add TO A + B
+Text.ParseText.RegexParseForFirstOccurrence Text: Match2 TextToFind: $'''(?<=Total Quoted Commercial Inland Marine Premium\\s)\\$.*''' StartingPosition: 0 IgnoreCase: False Match=> Total_Inland_Marine_Premium
+Text.Replace Text: Total_Inland_Marine_Premium TextToFind: $'''$''' IsRegEx: False IgnoreCase: False ReplaceWith: $'''%''%''' ActivateEscapeSequences: False Result=> Total_Inland_Marine_Premium
+Text.ToNumber Text: Total_Inland_Marine_Premium Number=> Total_Inland_Marine_Premium
+SET Total TO Total_Inland_Marine_Premium - Add
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''$%Total%''' Column: $'''U''' Row: 1
+LABEL 'Label END'

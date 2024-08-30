@@ -1,0 +1,6 @@
+Variables.IncreaseVariable Value: Excel_Counter IncrementValue: 2
+Variables.CreateNewDatatable InputTable: { ^['Column1', 'Column2'], [$'''Device Name''', Device_Name], [$'''Device Class''', Device_Class], [$'''Product Code''', Product_Code], [$'''Regulation No''', Regulation_No], [$'''Premarket Submission No''', Premarket_Submission_No], [$'''Establishment Operations''', Establishment_Operations], [$'''Recalls''', CDRH_Recalls] } DataTable=> Device_Table
+Excel.SetActiveWorksheet.ActivateWorksheetByName Instance: ExcelInstance Name: $'''Devices'''
+Excel.GetFirstFreeRowOnColumn Instance: ExcelInstance Column: $'''A''' FirstFreeRowOnColumn=> FirstFreeRowOn_Device_Summary_Column
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Device_Table Column: 1 Row: FirstFreeRowOn_Device_Summary_Column + Excel_Counter
+SET Excel_Counter TO 0

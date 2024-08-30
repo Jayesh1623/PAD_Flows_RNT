@@ -1,0 +1,102 @@
+Text.ParseText.RegexParseForFirstOccurrence Text: ExtractedPDFText TextToFind: $'''(?<=Blanket Coverage\\s).*([\\s\\S]+?)(?=Location Building Coverage Covered Cause of Loss)''' StartingPosition: 0 IgnoreCase: False Match=> Match
+Text.ParseText.RegexParse Text: Match TextToFind: $'''.*(?=[$]).*''' StartingPosition: 0 IgnoreCase: False Matches=> Match
+Excel.GetFirstFreeColumnRow Instance: ExcelInstance FirstFreeRow=> FirstFreeRow
+LOOP FOREACH CurrentItem IN Match
+    Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''[A-Z].*(?=\\s\\$.*\\$)''' StartingPosition: 0 IgnoreCase: False Match=> Coverage_Match
+    IF Coverage_Match = $'''Blanket Building''' THEN
+        Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Coverage_Match.Trimmed Column: $'''A''' Row: 16
+        Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''\\$.*(?=\\s\\d*\\W\\s\\$.*)|\\$.*(?=\\s\\w+\\/)''' StartingPosition: 0 IgnoreCase: False Match=> Limit_Match
+        Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Limit_Match.Trimmed Column: $'''B''' Row: 16
+        Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''(?<=\\$.*\\s).*(?=\\s\\$.*)''' StartingPosition: 0 IgnoreCase: False Match=> Coinsurance_Match
+        Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Coinsurance_Match.Trimmed Column: $'''C''' Row: 16
+        Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''(?<=\\$.*\\s)\\$.*''' StartingPosition: 0 IgnoreCase: False Match=> Premium_Match
+        Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Premium_Match.Trimmed Column: $'''D''' Row: 16
+        LOOP FOREACH CurrentRow IN All_Fields
+            Text.ParseText.RegexParseForFirstOccurrence Text: CurrentRow TextToFind: Coverage_Match StartingPosition: 0 IgnoreCase: False Match=> Match_BC
+            IF IsNotEmpty(Match_BC) THEN
+                Text.ParseText.RegexParseForFirstOccurrence Text: CurrentRow TextToFind: $'''(?<=Agreed Value Expiration Date:).*''' StartingPosition: 0 IgnoreCase: False Match=> Match_Agreed_Exp_Date_BC
+                Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Match_Agreed_Exp_Date_BC.Trimmed Column: $'''E''' Row: 16
+                Text.ParseText.RegexParseForFirstOccurrence Text: CurrentRow TextToFind: $'''(?<=Occupancy Code: \\d* ).*''' StartingPosition: 0 IgnoreCase: False Match=> Match_Cause_Loss_BC
+                Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Match_Cause_Loss_BC.Trimmed Column: $'''F''' Row: 16
+                Text.ParseText.RegexParseForFirstOccurrence Text: CurrentRow TextToFind: $'''(?<=Extended Period of Indemnity:\\s).*''' StartingPosition: 0 IgnoreCase: False Match=> Match_Extended_Period_BC
+                Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Match_Extended_Period_BC.Trimmed Column: $'''G''' Row: 16
+                Text.ParseText.RegexParseForFirstOccurrence Text: CurrentRow TextToFind: $'''(?<=Hour Deductible: ).*''' StartingPosition: 0 IgnoreCase: False Match=> Match_Hour_Deductible_BC
+                Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Match_Hour_Deductible_BC.Trimmed Column: $'''H''' Row: 16
+                EXIT LOOP
+            END
+        END
+    END
+    IF Contains(Coverage_Match, $'''Business Income''', False) THEN
+        Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Coverage_Match.Trimmed Column: $'''A''' Row: 18
+        Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''\\$.*(?=\\s\\d*\\W\\s\\$.*)|\\$.*(?=\\s\\w+\\/)''' StartingPosition: 0 IgnoreCase: False Match=> Limit_Match
+        Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Limit_Match.Trimmed Column: $'''B''' Row: 18
+        Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''(?<=\\$.*\\s).*(?=\\s\\$.*)''' StartingPosition: 0 IgnoreCase: False Match=> Coinsurance_Match
+        Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Coinsurance_Match.Trimmed Column: $'''C''' Row: 18
+        Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''(?<=\\$.*\\s)\\$.*''' StartingPosition: 0 IgnoreCase: False Match=> Premium_Match
+        Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Premium_Match.Trimmed Column: $'''D''' Row: 18
+        Text.Replace Text: Coverage_Match TextToFind: $'''Blanket''' IsRegEx: False IgnoreCase: True ReplaceWith: $'''%''%''' ActivateEscapeSequences: False Result=> Coverage_Match
+        LOOP FOREACH CurrentRow IN All_Fields
+            Text.ParseText.RegexParseForFirstOccurrence Text: CurrentRow TextToFind: Coverage_Match StartingPosition: 0 IgnoreCase: False Match=> Match_BC
+            IF IsNotEmpty(Match_BC) THEN
+                Text.ParseText.RegexParseForFirstOccurrence Text: CurrentRow TextToFind: $'''(?<=Agreed Value Expiration Date:).*''' StartingPosition: 0 IgnoreCase: False Match=> Match_Agreed_Exp_Date_BC
+                Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Match_Agreed_Exp_Date_BC.Trimmed Column: $'''E''' Row: 18
+                Text.ParseText.RegexParseForFirstOccurrence Text: CurrentRow TextToFind: $'''(?<=Occupancy Code: \\d* ).*''' StartingPosition: 0 IgnoreCase: False Match=> Match_Cause_Loss_BC
+                Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Match_Cause_Loss_BC.Trimmed Column: $'''F''' Row: 18
+                Text.ParseText.RegexParseForFirstOccurrence Text: CurrentRow TextToFind: $'''(?<=Extended Period of Indemnity:\\s).*''' StartingPosition: 0 IgnoreCase: False Match=> Match_Extended_Period_BC
+                Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Match_Extended_Period_BC.Trimmed Column: $'''G''' Row: 18
+                Text.ParseText.RegexParseForFirstOccurrence Text: CurrentRow TextToFind: $'''(?<=Hour Deductible: ).*''' StartingPosition: 0 IgnoreCase: False Match=> Match_Hour_Deductible_BC
+                Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Match_Hour_Deductible_BC.Trimmed Column: $'''H''' Row: 18
+                EXIT LOOP
+            END
+        END
+    END
+    IF Coverage_Match = $'''Blanket Contents''' THEN
+        Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''Blanket Personal Property''' Column: $'''A''' Row: 19
+        Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''\\$.*(?=\\s\\d*\\W\\s\\$.*)|\\$.*(?=\\s\\w+\\/)''' StartingPosition: 0 IgnoreCase: False Match=> Limit_Match
+        Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Limit_Match.Trimmed Column: $'''B''' Row: 19
+        Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''(?<=\\$.*\\s).*(?=\\s\\$.*)''' StartingPosition: 0 IgnoreCase: False Match=> Coinsurance_Match
+        Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Coinsurance_Match.Trimmed Column: $'''C''' Row: 19
+        Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''(?<=\\$.*\\s)\\$.*''' StartingPosition: 0 IgnoreCase: False Match=> Premium_Match
+        Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Premium_Match.Trimmed Column: $'''D''' Row: 19
+        Text.Replace Text: Coverage_Match TextToFind: $'''Blanket Contents''' IsRegEx: False IgnoreCase: True ReplaceWith: $'''Contents All Inclusive - Blanket Personal''' ActivateEscapeSequences: False Result=> Coverage_Match
+        LOOP FOREACH CurrentRow IN All_Fields
+            Text.ParseText.RegexParseForFirstOccurrence Text: CurrentRow TextToFind: Coverage_Match StartingPosition: 0 IgnoreCase: False Match=> Match_BC
+            IF IsNotEmpty(Match_BC) THEN
+                Text.ParseText.RegexParseForFirstOccurrence Text: CurrentRow TextToFind: $'''(?<=Agreed Value Expiration Date:).*''' StartingPosition: 0 IgnoreCase: False Match=> Match_Agreed_Exp_Date_BC
+                Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Match_Agreed_Exp_Date_BC.Trimmed Column: $'''E''' Row: 19
+                Text.ParseText.RegexParseForFirstOccurrence Text: CurrentRow TextToFind: $'''(?<=Occupancy Code: \\d* ).*''' StartingPosition: 0 IgnoreCase: False Match=> Match_Cause_Loss_BC
+                Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Match_Cause_Loss_BC.Trimmed Column: $'''F''' Row: 19
+                Text.ParseText.RegexParseForFirstOccurrence Text: CurrentRow TextToFind: $'''(?<=Extended Period of Indemnity:\\s).*''' StartingPosition: 0 IgnoreCase: False Match=> Match_Extended_Period_BC
+                Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Match_Extended_Period_BC.Trimmed Column: $'''G''' Row: 19
+                Text.ParseText.RegexParseForFirstOccurrence Text: CurrentRow TextToFind: $'''(?<=Hour Deductible: ).*''' StartingPosition: 0 IgnoreCase: False Match=> Match_Hour_Deductible_BC
+                Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Match_Hour_Deductible_BC.Trimmed Column: $'''H''' Row: 19
+                EXIT LOOP
+            END
+        END
+    END
+    IF Coverage_Match = $'''Blanket Building & Contents''' THEN
+        Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Coverage_Match.Trimmed Column: $'''A''' Row: 17
+        Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''\\$.*(?=\\s\\d*\\W\\s\\$.*)|\\$.*(?=\\s\\w+\\/)''' StartingPosition: 0 IgnoreCase: False Match=> Limit_Match
+        Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Limit_Match.Trimmed Column: $'''B''' Row: 17
+        Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''(?<=\\$.*\\s).*(?=\\s\\$.*)''' StartingPosition: 0 IgnoreCase: False Match=> Coinsurance_Match
+        Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Coinsurance_Match.Trimmed Column: $'''C''' Row: 17
+        Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''(?<=\\$.*\\s)\\$.*''' StartingPosition: 0 IgnoreCase: False Match=> Premium_Match
+        Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Premium_Match.Trimmed Column: $'''D''' Row: 17
+        Text.Replace Text: Coverage_Match TextToFind: $'''&''' IsRegEx: False IgnoreCase: True ReplaceWith: $'''and''' ActivateEscapeSequences: False Result=> Coverage_Match
+        LOOP FOREACH CurrentRow IN All_Fields
+            Text.ParseText.RegexParseForFirstOccurrence Text: CurrentRow TextToFind: Coverage_Match StartingPosition: 0 IgnoreCase: False Match=> Match_BC
+            IF IsNotEmpty(Match_BC) THEN
+                Text.ParseText.RegexParseForFirstOccurrence Text: CurrentRow TextToFind: $'''(?<=Agreed Value Expiration Date:).*''' StartingPosition: 0 IgnoreCase: False Match=> Match_Agreed_Exp_Date_BC
+                Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Match_Agreed_Exp_Date_BC.Trimmed Column: $'''E''' Row: 17
+                Text.ParseText.RegexParseForFirstOccurrence Text: CurrentRow TextToFind: $'''(?<=Occupancy Code: \\d* ).*''' StartingPosition: 0 IgnoreCase: False Match=> Match_Cause_Loss_BC
+                Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Match_Cause_Loss_BC.Trimmed Column: $'''F''' Row: 17
+                Text.ParseText.RegexParseForFirstOccurrence Text: CurrentRow TextToFind: $'''(?<=Extended Period of Indemnity:\\s).*''' StartingPosition: 0 IgnoreCase: False Match=> Match_Extended_Period_BC
+                Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Match_Extended_Period_BC.Trimmed Column: $'''G''' Row: 17
+                Text.ParseText.RegexParseForFirstOccurrence Text: CurrentRow TextToFind: $'''(?<=Hour Deductible: ).*''' StartingPosition: 0 IgnoreCase: False Match=> Match_Hour_Deductible_BC
+                Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Match_Hour_Deductible_BC.Trimmed Column: $'''H''' Row: 17
+                EXIT LOOP
+            END
+        END
+    END
+END
+CALL Premium_Values3

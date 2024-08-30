@@ -1,0 +1,7 @@
+Database.Connect ConnectionString: $'''Provider=MSOLEDBSQL.1;Password=fda_dev_login;Persist Security Info=True;User ID=fda_dev_login;Initial Catalog=fda_dev;Data Source=rntdbinstance.cywt4ngax3hu.us-east-2.rds.amazonaws.com;Initial File Name=\"\";Use Encryption for Data=True;Trust Server Certificate=True;Server SPN=\"\";Authentication=\"\";Access Token=\"\"''' Connection=> SQLConnection
+SET Created_By TO $'''Jayesh_P'''
+SET establishment_id TO 1001
+DateTime.GetCurrentDateTime.Local DateTimeFormat: DateTime.DateTimeFormat.DateAndTime CurrentDateTime=> CurrentDateTime
+Database.ExecuteSqlStatement.Execute Connection: SQLConnection Statement: $'''INSERT INTO entity_summary (establishment_name, registration_number, registration_year, class_3_devices, no_of_recalls, no_of_inspections, total_no_of_devices, warning_letters, response_letter, closeout_letter, adverse_events, adverse_event_report, establishment_address, owner_operator_address,official_correspondent_address,created_by,created_date)
+VALUES (\'%Establsihment_Name%\', \'%Registration_Number%\', \'%Registration_Year%\', \'%Class3_Devices%\', \'%No_Of_Recalls%\', \'%No_Of_Inspections%\', \'%Total_No_Of_Devices%\', \'%Warning_Letters%\', \'%Response_Letter%\', \'%Response_Letter%\', \'%Total_No_MAUDE%\', \'%Adverse_Event_Count%\', \'%Establishment%\', \'%Owner_Operator%\', \'%Official_Correspondent%\', \'%Created_By%\', \'%CurrentDateTime%\');''' Timeout: 30
+Database.Close Connection: SQLConnection

@@ -1,0 +1,74 @@
+**REGION Process_Log_Region
+DateTime.GetCurrentDateTime.Local DateTimeFormat: DateTime.DateTimeFormat.DateAndTime CurrentDateTime=> CurrentDateTime2_PL
+Text.ConvertDateTimeToText.FromCustomDateTime DateTime: CurrentDateTime2_PL CustomFormat: $'''dd/MM/yyyy hh:mm:ss tt''' Result=> FormattedDateTime
+Text.ConvertDateTimeToText.FromCustomDateTime DateTime: CurrentDateTime2_PL CustomFormat: $'''dd/MM/yyyy''' Result=> CustomDate
+SET LogID TO LogIDS[11]
+SET Log_Type TO LogType[0]
+SET Item_Status TO ItemStatus[0]
+SET Subflow TO SubflowNames[14]
+SET ExceptionType TO $'''%''%'''
+DISABLE CALL Global_Logs
+Text.Replace Text: CustomDate TextToFind: $'''/''' IsRegEx: False IgnoreCase: False ReplaceWith: $'''_''' ActivateEscapeSequences: False Result=> CustomDate
+DISABLE SET Subflow TO SubflowNames[14]
+SET Descrip TO In_Description[0]
+SET ProcessLog TO $'''**********************************************************
+Policy: %Policy_Symbol%-%Policy_Number%-%Policy_Mod%
+Date And Time Flow Started: %FormattedDateTime%
+SubflowName: %Subflow%
+Description: %Subflow% %Descrip%'''
+File.WriteText File: $'''C:\\Users\\Jayesh Patil\\OneDrive - RABBIT AND TORTOISE TECHNOLOGY SOLUTIONS PRIVATE LIMITED\\Desktop\\Manual_CPP\\Manual_CPP_Logs\\Process Logs\\ProcesLog_%CustomDate%''' TextToWrite: ProcessLog AppendNewLine: True IfFileExists: File.IfFileExists.Append Encoding: File.FileEncoding.Unicode
+SET Descrip TO $'''%Subflow% %In_Description[0]%'''
+**ENDREGION
+Excel.SetActiveWorksheet.ActivateWorksheetByName Instance: ExcelInstance Name: $'''Cyber Liability'''
+Text.ParseText.RegexParseForFirstOccurrence Text: ExtractedPDFText TextToFind: $'''(?<=Cyber Liability Proposed Coverages\\s).*(\\n.*)*(?=Forms Applicable To Cyber Liability Coverage Part:)''' StartingPosition: 0 IgnoreCase: False Match=> Match
+IF IsEmpty(Match) THEN
+    SET ExceptionType TO $'''Business Exception'''
+    SET Item_Status TO ItemStatus[1]
+    SET Log_Type TO LogType[1]
+    DISABLE SET Business_Exception TO $'''%Business_Exception%_Form No %CurrentFormNo% data is not present for the Policy No %Policy_Number%.'''
+    SET Business_Exception TO $'''%Business_Exception% %CurrentFormNo%'''
+    SET Final_Status TO $'''Business Exception'''
+    SET Descrip TO $'''%Error_Description[7]% %CurrentFormNo% %Error_Description[8]% %Policy_Number%.'''
+    DISABLE SET Descrip TO CurrentFormNo
+    SET Subflow TO SubflowNames[14]
+    DISABLE CALL Global_Logs
+    CALL Error_Logs
+    GOTO Label_End
+END
+CALL Global_Logs
+Text.ParseText.RegexParseForFirstOccurrence Text: ExtractedPDFText TextToFind: $'''(?<= Forms Applicable To Cyber Liability Coverage Part:\\s).*([\\s\\S]+?)(?=Avenues Package Product)''' StartingPosition: 0 IgnoreCase: False Match=> Match2
+Text.ParseText.RegexParse Text: Match2 TextToFind: $'''.*(?=\\s\\d+\\/\\d+).*(\\n.*)*?''' StartingPosition: 0 IgnoreCase: False Matches=> Code_List
+SET RowIndex TO 2
+LOOP FOREACH CurrentItem IN Code_list
+    Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''.*(?=\\s\\d+\\/\\d+)''' StartingPosition: 0 IgnoreCase: False Match=> Form_Number
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Form_Number.Trimmed Column: $'''A''' Row: RowIndex
+    Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''(?<=\\d+\\w+?\\s)\\d+\\/\\d+(?=\\s)''' StartingPosition: 0 IgnoreCase: False Match=> Edition_Date
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Edition_Date.Trimmed Column: $'''B''' Row: RowIndex
+    Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''(?<=\\s\\d+\\/\\d+\\s).*(\\n.*)*?''' StartingPosition: 0 IgnoreCase: False Match=> Description
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Description.Trimmed Column: $'''C''' Row: RowIndex
+    Variables.IncreaseVariable Value: RowIndex IncrementValue: 1
+END
+Text.ParseText.RegexParseForFirstOccurrence Text: Match TextToFind: $'''(?<=Maximum Aggregate Limit of Liability:\\s)\\$.*''' StartingPosition: 0 IgnoreCase: False Match=> Max_Agg_Limit_Liabilty
+IF Contains(Max_Agg_Limit_Liabilty, $'''Avenues Package Product''', True) THEN
+    Text.Replace Text: Max_Agg_Limit_Liabilty TextToFind: $'''Avenues Package Product''' IsRegEx: False IgnoreCase: False ReplaceWith: $'''%''%''' ActivateEscapeSequences: False Result=> Max_Agg_Limit_Liabilty
+END
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Max_Agg_Limit_Liabilty.Trimmed Column: $'''G''' Row: 1
+Text.ParseText.RegexParseForFirstOccurrence Text: Match TextToFind: $'''(?<=Prior and Pending Proceedings Date:\\s).*''' StartingPosition: 0 IgnoreCase: False Match=> Prior_Pending_Proced_Date
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Prior_Pending_Proced_Date.Trimmed Column: $'''G''' Row: 2
+Text.ParseText.RegexParseForFirstOccurrence Text: Match TextToFind: $'''(?<=Retroactive Date:\\s).*''' StartingPosition: 0 IgnoreCase: False Match=> Retroactive_Date
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Retroactive_Date.Trimmed Column: $'''G''' Row: 3
+**REGION Process_Log
+DateTime.GetCurrentDateTime.Local DateTimeFormat: DateTime.DateTimeFormat.DateAndTime CurrentDateTime=> CurrentDateTime2_PL
+Text.ConvertDateTimeToText.FromCustomDateTime DateTime: CurrentDateTime2_PL CustomFormat: $'''dd/MM/yyyy hh:mm:ss tt''' Result=> FormattedDateTime
+Text.ConvertDateTimeToText.FromCustomDateTime DateTime: CurrentDateTime2_PL CustomFormat: $'''dd/MM/yyyy''' Result=> CustomDate
+Text.Replace Text: CustomDate TextToFind: $'''/''' IsRegEx: False IgnoreCase: False ReplaceWith: $'''_''' ActivateEscapeSequences: False Result=> CustomDate
+SET Subflow TO SubflowNames[14]
+SET Descrip TO In_Description[1]
+SET ProcessLog TO $'''**********************************************************
+Policy: %Policy_Symbol%-%Policy_Number%-%Policy_Mod%
+Date And Time Flow Started: %FormattedDateTime%
+SubflowName: %Subflow%
+Description: %Subflow% %Descrip%'''
+File.WriteText File: $'''C:\\Users\\Jayesh Patil\\OneDrive - RABBIT AND TORTOISE TECHNOLOGY SOLUTIONS PRIVATE LIMITED\\Desktop\\Manual_CPP\\Manual_CPP_Logs\\Process Logs\\ProcesLog_%CustomDate%''' TextToWrite: ProcessLog AppendNewLine: True IfFileExists: File.IfFileExists.Append Encoding: File.FileEncoding.Unicode
+**ENDREGION
+LABEL Label_End

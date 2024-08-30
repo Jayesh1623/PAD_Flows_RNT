@@ -1,0 +1,88 @@
+**REGION Process_Log_Region
+DateTime.GetCurrentDateTime.Local DateTimeFormat: DateTime.DateTimeFormat.DateAndTime CurrentDateTime=> CurrentDateTime2_PL
+Text.ConvertDateTimeToText.FromCustomDateTime DateTime: CurrentDateTime2_PL CustomFormat: $'''dd/MM/yyyy hh:mm:ss tt''' Result=> FormattedDateTime
+Text.ConvertDateTimeToText.FromCustomDateTime DateTime: CurrentDateTime2_PL CustomFormat: $'''dd/MM/yyyy''' Result=> CustomDate
+SET LogID TO LogIDS[9]
+SET Log_Type TO LogType[0]
+SET Item_Status TO ItemStatus[0]
+SET Subflow TO SubflowNames[10]
+SET ExceptionType TO $'''%''%'''
+DISABLE CALL Global_Logs
+Text.Replace Text: CustomDate TextToFind: $'''/''' IsRegEx: False IgnoreCase: False ReplaceWith: $'''_''' ActivateEscapeSequences: False Result=> CustomDate
+DISABLE SET Subflow TO SubflowNames[10]
+SET Descrip TO In_Description[0]
+SET ProcessLog TO $'''**********************************************************
+Policy: %Policy_Symbol%-%Policy_Number%-%Policy_Mod%
+Date And Time Flow Started: %FormattedDateTime%
+SubflowName: %Subflow%
+Description: %Subflow% %Descrip%'''
+File.WriteText File: $'''C:\\Users\\Jayesh Patil\\OneDrive - RABBIT AND TORTOISE TECHNOLOGY SOLUTIONS PRIVATE LIMITED\\Desktop\\Manual_CPP\\Manual_CPP_Logs\\Process Logs\\ProcesLog_%CustomDate%''' TextToWrite: ProcessLog AppendNewLine: True IfFileExists: File.IfFileExists.Append Encoding: File.FileEncoding.Unicode
+SET Descrip TO $'''%Subflow% %In_Description[0]%'''
+**ENDREGION
+Excel.SetActiveWorksheet.ActivateWorksheetByName Instance: ExcelInstance Name: $'''Crime Coverage'''
+Text.ParseText.RegexParseForFirstOccurrence Text: ExtractedPDFText TextToFind: $'''(?<=Crime Coverages Included In Quote Proposal\\s).*(\\n.*)*''' StartingPosition: 0 IgnoreCase: False Match=> Crime_Coverage_Data
+IF IsEmpty(Crime_Coverage_Data) THEN
+    SET ExceptionType TO $'''Business Exception'''
+    SET Item_Status TO ItemStatus[1]
+    SET Log_Type TO LogType[1]
+    DISABLE SET Business_Exception TO $'''%Business_Exception%_Form No %CurrentFormNo% data is not present for the Policy No %Policy_Number%.'''
+    SET Business_Exception TO $'''%Business_Exception% %CurrentFormNo%'''
+    SET Final_Status TO $'''Business Exception'''
+    SET Descrip TO $'''%Error_Description[7]% %CurrentFormNo% %Error_Description[8]% %Policy_Number%.'''
+    DISABLE SET Descrip TO CurrentFormNo
+    SET Subflow TO SubflowNames[10]
+    DISABLE CALL Global_Logs
+    CALL Error_Logs
+    GOTO Label_End
+END
+CALL Global_Logs
+Text.ParseText.RegexParseForFirstOccurrence Text: Crime_Coverage_Data TextToFind: $'''(?<=Total Quoted Commercial Crime Premium\\s).*''' StartingPosition: 0 IgnoreCase: False Match=> Total_Quoted_Commercial_Crime_Premium
+Text.ParseText.RegexParse Text: Crime_Coverage_Data TextToFind: $'''(?<=Page\\s)\\d+''' StartingPosition: 0 IgnoreCase: False Matches=> Matches
+LOOP FOREACH CurrentItem IN Matches
+    EXIT LOOP
+END
+SET A TO CurrentItem - 1
+Pdf.ExtractTablesFromPDF.ExtractTablesFromPage PDFFile: File_Path PageNumber: A MultiPageTables: True SetFirstRowAsHeader: True ExtractedPDFTables=> ExtractedPDFTables
+SET Index TO 0
+SET RowIndex TO 2
+LOOP FOREACH CurrentITable IN ExtractedPDFTables
+    IF Index = 1 THEN
+        Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: CurrentITable.DataTable.ColumnHeadersRow Column: $'''I''' Row: 1
+        Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: CurrentITable.DataTable Column: $'''I''' Row: 2
+    ELSE
+        Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''Coverage''' Column: $'''A''' Row: 1
+        Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''Premium''' Column: $'''B''' Row: 1
+        Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''Limit''' Column: $'''C''' Row: 1
+        Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''Ded''' Column: $'''D''' Row: 1
+        Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''Building''' Column: $'''E''' Row: 1
+        Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''Location''' Column: $'''F''' Row: 1
+        LOOP FOREACH CurrentItem IN CurrentITable.DataTable
+            Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: CurrentItem[2] Column: $'''A''' Row: RowIndex
+            Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: CurrentItem[5] Column: $'''B''' Row: RowIndex
+            Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: CurrentItem[3] Column: $'''C''' Row: RowIndex
+            Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: CurrentItem[4] Column: $'''D''' Row: RowIndex
+            Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: CurrentItem[1] Column: $'''E''' Row: RowIndex
+            Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: CurrentItem[0] Column: $'''F''' Row: RowIndex
+            SET RowIndex TO RowIndex + 1
+        END
+    END
+    Variables.IncreaseVariable Value: Index IncrementValue: 1
+END
+Excel.GetFirstFreeRowOnColumn Instance: ExcelInstance Column: $'''A''' FirstFreeRowOnColumn=> FreeRowColumn_A
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''Total Quoted Commercial Crime Premium''' Column: $'''A''' Row: FreeRowColumn_A
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Total_Quoted_Commercial_Crime_Premium.Trimmed Column: $'''B''' Row: FreeRowColumn_A
+**REGION Process_Log
+DateTime.GetCurrentDateTime.Local DateTimeFormat: DateTime.DateTimeFormat.DateAndTime CurrentDateTime=> CurrentDateTime2_PL
+Text.ConvertDateTimeToText.FromCustomDateTime DateTime: CurrentDateTime2_PL CustomFormat: $'''dd/MM/yyyy hh:mm:ss tt''' Result=> FormattedDateTime
+Text.ConvertDateTimeToText.FromCustomDateTime DateTime: CurrentDateTime2_PL CustomFormat: $'''dd/MM/yyyy''' Result=> CustomDate
+Text.Replace Text: CustomDate TextToFind: $'''/''' IsRegEx: False IgnoreCase: False ReplaceWith: $'''_''' ActivateEscapeSequences: False Result=> CustomDate
+SET Subflow TO SubflowNames[10]
+SET Descrip TO In_Description[1]
+SET ProcessLog TO $'''**********************************************************
+Policy: %Policy_Symbol%-%Policy_Number%-%Policy_Mod%
+Date And Time Flow Started: %FormattedDateTime%
+SubflowName: %Subflow%
+Description: %Subflow% %Descrip%'''
+File.WriteText File: $'''C:\\Users\\Jayesh Patil\\OneDrive - RABBIT AND TORTOISE TECHNOLOGY SOLUTIONS PRIVATE LIMITED\\Desktop\\Manual_CPP\\Manual_CPP_Logs\\Process Logs\\ProcesLog_%CustomDate%''' TextToWrite: ProcessLog AppendNewLine: True IfFileExists: File.IfFileExists.Append Encoding: File.FileEncoding.Unicode
+**ENDREGION
+LABEL Label_End

@@ -1,0 +1,55 @@
+Excel.SetActiveWorksheet.ActivateWorksheetByName Instance: ExcelInstance Name: $'''Earthquake Sprinkler'''
+DISABLE Pdf.ExtractTextFromPDF.ExtractText PDFFile: $'''C:\\Users\\Jayesh Patil\\Desktop\\JP1623\\Arete Associates QPP.pdf''' DetectLayout: True ExtractedText=> StructuredPDFText
+Pdf.ExtractTextFromPDF.ExtractText PDFFile: Currentpdffile DetectLayout: True ExtractedText=> StructuredPDFText
+Text.ParseText.RegexParseForFirstOccurrence Text: StructuredPDFText TextToFind: $'''(?<=EARTHQUAKE SPRINKLER LEAKAGE PROPOSED COVERAGE\\s).*(\\n.*)*(?=Total Earthquake Sprinkler Leakage Premium).*(\\n.*?)*?(?=Page).*''' StartingPosition: 0 IgnoreCase: False Match=> Match
+DISABLE Excel.LaunchExcel.LaunchUnderExistingProcess Visible: True Instance=> ExcelInstance
+Text.ParseText.RegexParse Text: Match TextToFind: $'''(?<=Page\\s)\\d+''' StartingPosition: 0 IgnoreCase: False Matches=> Pages
+SET Free_Column TO 1
+SET Column TO Free_Column
+SET A TO 4
+LOOP FOREACH CurrentPage IN Pages
+    Pdf.ExtractTablesFromPDF.ExtractTablesFromPage PDFFile: Currentpdffile PageNumber: CurrentPage MultiPageTables: True SetFirstRowAsHeader: False ExtractedPDFTables=> ExtractedPDFTables
+    LOOP FOREACH CurrentITable IN ExtractedPDFTables
+        DISABLE Display.ShowMessageDialog.ShowMessage Message: CurrentITable.DataTable Icon: Display.Icon.None Buttons: Display.Buttons.OK DefaultButton: Display.DefaultButton.Button1 IsTopMost: False ButtonPressed=> ButtonPressed2
+        IF CurrentITable.DataTable.RowsCount < 3 THEN
+            Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: CurrentITable.DataTable Column: Column Row: 1
+            SET Column TO Column + A
+        ELSE
+            Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''Location No.''' Column: Column Row: 5
+            Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''Building No.''' Column: Column + 1 Row: 5
+            Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''Building Address''' Column: Column + 2 Row: 5
+            Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''Building Deductible''' Column: Column + 3 Row: 5
+            Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''Personal Property Deductible''' Column: Column + 4 Row: 5
+            LOOP LoopIndex FROM 0 TO CurrentITable.DataTable.RowsCount - 1 STEP 1
+                SET Building_Address TO $'''%''%'''
+                Text.ParseText.RegexParseForFirstOccurrence Text: CurrentITable.DataTable TextToFind: $'''[A-z]*(?=\\sEARTHQUAKE)\\sEARTHQUAKE SPRINKLER LEAKAGE''' StartingPosition: 0 IgnoreCase: False Match=> Flood_Match
+                Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Flood_Match Column: Column Row: 1
+                Text.ParseText.RegexParseForFirstOccurrence Text: CurrentITable.DataTable TextToFind: $'''(?<=Per “Occurrence” - Limit Of Insurance,.*)\\$.*''' StartingPosition: 0 IgnoreCase: False Match=> PER_Occ
+                Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''Per “Occurrence” - Limit Of Insurance''' Column: Column Row: 2
+                Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: PER_Occ Column: Column + 1 Row: 2
+                Text.ParseText.RegexParseForFirstOccurrence Text: CurrentITable.DataTable TextToFind: $'''(?<=Annual Aggregate - Limit Of Insurance,.*)\\$.*''' StartingPosition: 0 IgnoreCase: False Match=> Ann_Agg
+                Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''Annual Aggregate - Limit Of Insurance''' Column: Column Row: 3
+                Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Ann_Agg Column: Column + 1 Row: 3
+                Text.ParseText.RegexParseForFirstOccurrence Text: CurrentITable.DataTable TextToFind: $'''(?<=Premium,.*)\\$.*''' StartingPosition: 0 IgnoreCase: False Match=> Flood_Premium
+                Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''Premium''' Column: Column Row: 4
+                Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Flood_Premium Column: Column + 1 Row: 4
+                IF LoopIndex >= 7 THEN
+                    LOOP Colmn_Index FROM 2 TO CurrentITable.DataTable.Columns.Count - 3 STEP 1
+                        SET Building_Address TO $'''%Building_Address% %CurrentITable.DataTable[LoopIndex][Colmn_Index]%'''
+                        Text.Trim Text: Building_Address TrimOption: Text.TrimOption.Both TrimmedText=> Building_Address
+                    END
+                    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: CurrentITable.DataTable[LoopIndex][0] Column: Column Row: LoopIndex - 1
+                    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: CurrentITable.DataTable[LoopIndex][1] Column: Column + 1 Row: LoopIndex - 1
+                    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Building_Address Column: Column + 2 Row: LoopIndex - 1
+                    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: CurrentITable.DataTable[LoopIndex][CurrentITable.DataTable.Columns.Count - 2] Column: Column + 3 Row: LoopIndex - 1
+                    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: CurrentITable.DataTable[LoopIndex][CurrentITable.DataTable.Columns.Count - 1] Column: Column + 4 Row: LoopIndex - 1
+                END
+                Variables.IncreaseVariable Value: RowIndex IncrementValue: 1
+            END
+        END
+        Excel.GetFirstFreeColumnRow Instance: ExcelInstance FirstFreeColumn=> FirstFreeColumn_On_Flood
+        SET Column TO FirstFreeColumn_On_Flood + 2
+    END
+    Excel.GetFirstFreeColumnRow Instance: ExcelInstance FirstFreeColumn=> FirstFreeColumn_On_Flood
+    SET Column TO FirstFreeColumn_On_Flood + 2
+END

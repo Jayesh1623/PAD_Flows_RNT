@@ -1,0 +1,42 @@
+Pdf.ExtractTextFromPDF.ExtractText PDFFile: $'''C:\\Users\\Jayesh Patil\\Desktop\\JP1623\\QPP - CRE Management LLC (2).pdf''' DetectLayout: True ExtractedText=> ExtractedPDFText
+Text.ParseText.RegexParseForFirstOccurrence Text: ExtractedPDFText TextToFind: $'''(?<=EARTH MOVEMENT PROPOSED COVERAGE\\s).*(\\n.*)*?(?=Total Earth Movement Premium)''' StartingPosition: 0 IgnoreCase: False Match=> Match
+Excel.LaunchExcel.LaunchUnderExistingProcess Visible: True Instance=> ExcelInstance
+Text.ParseText.RegexParse Text: Match TextToFind: $'''(?<=Page\\s)\\d+''' StartingPosition: 0 IgnoreCase: False Matches=> Pages
+Text.ParseText.RegexParseForFirstOccurrence Text: Match TextToFind: $'''(?<=Maximum Per “Occurrence” Limit Of Insurance\\s*)\\$.*''' StartingPosition: 0 IgnoreCase: False Match=> PER_Occ
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''Maximum Per Occurrence Limit Of Insurance''' Column: $'''A''' Row: 1
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: PER_Occ Column: $'''B''' Row: 1
+Text.ParseText.RegexParseForFirstOccurrence Text: Match TextToFind: $'''(?<=Maximum Annual Aggregate Limit Of Insurance\\s*)\\$.*''' StartingPosition: 0 IgnoreCase: False Match=> Ann_Agg
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''Maximum Annual Aggregate Limit Of Insurance''' Column: $'''A''' Row: 2
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Ann_Agg Column: $'''B''' Row: 2
+SET Free_Column TO 1
+SET Column TO Free_Column
+SET A TO 4
+LOOP FOREACH CurrentPage IN Pages
+    Pdf.ExtractTablesFromPDF.ExtractTablesFromPage PDFFile: $'''C:\\Users\\Jayesh Patil\\Desktop\\JP1623\\QPP - CRE Management LLC (2).pdf''' PageNumber: CurrentPage MultiPageTables: True SetFirstRowAsHeader: False ExtractedPDFTables=> ExtractedPDFTables
+    LOOP FOREACH CurrentITable IN ExtractedPDFTables
+        Display.ShowMessageDialog.ShowMessage Message: CurrentITable.DataTable Icon: Display.Icon.None Buttons: Display.Buttons.OK DefaultButton: Display.DefaultButton.Button1 IsTopMost: False ButtonPressed=> ButtonPressed2
+        IF CurrentITable.DataTable.RowsCount < 3 THEN
+            Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: CurrentITable.DataTable Column: Column Row: 1
+            SET Column TO Column + A
+        ELSE
+            LOOP LoopIndex FROM 0 TO CurrentITable.DataTable.RowsCount - 1 STEP 1
+                SET Building_Address TO $'''%''%'''
+                IF LoopIndex >= 6 THEN
+                    LOOP Colmn_Index FROM 2 TO CurrentITable.DataTable.Columns.Count - 3 STEP 1
+                        SET Building_Address TO $'''%Building_Address% %CurrentITable.DataTable[LoopIndex][Colmn_Index]%'''
+                        Text.Trim Text: Building_Address TrimOption: Text.TrimOption.Both TrimmedText=> Building_Address
+                    END
+                    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: CurrentITable.DataTable[LoopIndex][0] Column: Column Row: LoopIndex - 1
+                    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: CurrentITable.DataTable[LoopIndex][1] Column: Column + 1 Row: LoopIndex - 1
+                    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Building_Address Column: Column + 2 Row: LoopIndex - 1
+                    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: CurrentITable.DataTable[LoopIndex][CurrentITable.DataTable.Columns.Count - 2] Column: Column + 3 Row: LoopIndex - 1
+                    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: CurrentITable.DataTable[LoopIndex][CurrentITable.DataTable.Columns.Count - 1] Column: Column + 4 Row: LoopIndex - 1
+                END
+            END
+        END
+        Excel.GetFirstFreeColumnRow Instance: ExcelInstance FirstFreeColumn=> FirstFreeColumn_On_Flood
+        SET Column TO FirstFreeColumn_On_Flood + 2
+    END
+    Excel.GetFirstFreeColumnRow Instance: ExcelInstance FirstFreeColumn=> FirstFreeColumn_On_Flood
+    SET Column TO FirstFreeColumn_On_Flood + 2
+END

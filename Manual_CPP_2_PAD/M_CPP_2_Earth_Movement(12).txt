@@ -1,0 +1,51 @@
+Excel.SetActiveWorksheet.ActivateWorksheetByName Instance: ExcelInstance Name: $'''Earth Movement'''
+Text.ParseText.RegexParseForFirstOccurrence Text: StructuredPDFText TextToFind: $'''(?<=EARTH MOVEMENT PROPOSED COVERAGE\\s).*(\\n.*)*?(?=Total Earth Movement Premium)''' StartingPosition: 0 IgnoreCase: False Match=> Match
+Text.ParseText.RegexParseForFirstOccurrence Text: Match TextToFind: $'''(?<=Location\\s*Building\\s*Building\\sAddress:\\s*Building\\s*Personal\\sProperty\\s).*(\\n.*)*(?=Additional Premium to Meet Minimum Premium)''' StartingPosition: 0 IgnoreCase: False Match=> Match2
+Text.Replace Text: Match2 TextToFind: $'''.*\\s{25}[A-z].*''' IsRegEx: True IgnoreCase: True ReplaceWith: $'''%''%''' ActivateEscapeSequences: False Result=> Match2
+Text.Replace Text: Match2 TextToFind: $''',''' IsRegEx: True IgnoreCase: True ReplaceWith: $'''%''%''' ActivateEscapeSequences: False Result=> Match2
+Text.Replace Text: Match2 TextToFind: $'''\\r?\\n\\s{125}''' IsRegEx: True IgnoreCase: False ReplaceWith: $'''%''%''' ActivateEscapeSequences: False Result=> Match2
+Text.ParseText.RegexParse Text: Match2 TextToFind: $'''\\d+.*(?<=[$]).*|\\d+\\s*\\d+\\s.*''' StartingPosition: 0 IgnoreCase: False Matches=> Code_list
+Text.ParseText.RegexParseForFirstOccurrence Text: Match TextToFind: $'''(?<=Maximum Per “Occurrence” Limit Of Insurance\\s+)\\$.*''' StartingPosition: 0 IgnoreCase: False Match=> Max_Per_Occ_Limit_Ins
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Max_Per_Occ_Limit_Ins Column: $'''B''' Row: 1
+Text.ParseText.RegexParseForFirstOccurrence Text: Match TextToFind: $'''(?<=Maximum Annual Aggregate Limit Of Insurance\\s+)\\$.*''' StartingPosition: 0 IgnoreCase: False Match=> Max_Ann_Agg_Limit_Ins
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Max_Ann_Agg_Limit_Ins Column: $'''B''' Row: 2
+Text.ParseText.RegexParseForFirstOccurrence Text: Match TextToFind: $'''(?<=Per “Occurrence” - Limit Of Insurance\\s+)\\$.*''' StartingPosition: 0 IgnoreCase: False Match=> Per_Occ_Limit_Ins
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Per_Occ_Limit_Ins Column: $'''F''' Row: 2
+Text.ParseText.RegexParseForFirstOccurrence Text: Match TextToFind: $'''(?<=Annual Aggregate - Limit Of Insurance\\s+)\\$.*''' StartingPosition: 0 IgnoreCase: False Match=> Ann_Agg_Limit_Ins
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Ann_Agg_Limit_Ins Column: $'''F''' Row: 3
+Text.ParseText.RegexParseForFirstOccurrence Text: Match TextToFind: $'''(?<=Premium\\s+)\\$.*''' StartingPosition: 0 IgnoreCase: False Match=> Premium
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Premium Column: $'''F''' Row: 4
+Text.ParseText.RegexParseForFirstOccurrence Text: Match TextToFind: $'''(?<=Additional Premium to Meet Minimum Premium\\s+)\\$.*''' StartingPosition: 0 IgnoreCase: False Match=> Add_Pre_Meet_Min_Pre
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Add_Pre_Meet_Min_Pre Column: $'''M''' Row: 1
+Text.ParseText.RegexParseForFirstOccurrence Text: ExtractedPDFText TextToFind: $'''(?<=Additional Premium to Meet Minimum Premium\\s\\$.*\\sTotal Earth Movement Premium\\s).*(?=Avenues)''' StartingPosition: 0 IgnoreCase: False Match=> Total_Earth_Pre
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Total_Earth_Pre Column: $'''M''' Row: 2
+SET RowIndex TO 2
+Excel.GetFirstFreeRowOnColumn Instance: ExcelInstance Column: $'''E''' FirstFreeRowOnColumn=> FirstFreeRowColumn_E
+LOOP FOREACH CurrentItem IN Code_list
+    Excel.GetFirstFreeRowOnColumn Instance: ExcelInstance Column: $'''E''' FirstFreeRowOnColumn=> FirstFreeRowColumn_E
+    Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''^\\s*\\d+(?=\\s*\\d+.*[\\d.*])''' StartingPosition: 0 IgnoreCase: False Match=> Location_No
+    Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''(?<=^\\s*\\d+\\s)\\s*\\d+''' StartingPosition: 0 IgnoreCase: False Match=> Building_No
+    Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''(?<=\\d+\\s.*\\d+\\s).*(?=\\s\\$.*\\$.*)|(?<=\\d+\\s.*\\d+\\s).*(?=\\s\\$\\d+)|(?<=\\d+\\s.*\\d+\\s).*''' StartingPosition: 0 IgnoreCase: False Match=> Building_Address
+    Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''(?<=[$]\\d+\\s+)[$]\\d+|(?<=\\s{30}\\s+)[$]\\d+''' StartingPosition: 0 IgnoreCase: False Match=> Propert_Deductible
+    IF Building_Address.Trimmed.Length <= 30 THEN
+        Text.Replace Text: CurrentItem TextToFind: $'''(?<=[$]\\d+\\s+)[$]\\d+|(?<=\\s{35}\\s+)[$]\\d+''' IsRegEx: True IgnoreCase: False ReplaceWith: $'''%''%''' ActivateEscapeSequences: False Result=> CurrentItem
+    ELSE
+        Text.Replace Text: CurrentItem TextToFind: $'''(?<=[$]\\d+\\s+)[$]\\d+|(?<=\\s{30}\\s+)[$]\\d+''' IsRegEx: True IgnoreCase: False ReplaceWith: $'''%''%''' ActivateEscapeSequences: False Result=> CurrentItem
+    END
+    Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''\\$.*''' StartingPosition: 0 IgnoreCase: False Match=> Building_Deductible
+    IF IsEmpty(Building_Address) THEN
+        NEXT LOOP
+    END
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Location_No Column: $'''E''' Row: FirstFreeRowColumn_E
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Building_No Column: $'''F''' Row: FirstFreeRowColumn_E
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Building_Address Column: $'''G''' Row: FirstFreeRowColumn_E
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Propert_Deductible.Trimmed Column: $'''I''' Row: FirstFreeRowColumn_E
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Building_Deductible.Trimmed Column: $'''H''' Row: FirstFreeRowColumn_E
+    DISABLE IF IsEmpty(Propert_Deductible) THEN
+        DISABLE Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''(?<=\\d{5}\\s*\\d+\\W\\s*)\\d+\\W|(?<=\\s{30}\\s+)\\d+\\W''' StartingPosition: 0 IgnoreCase: False Match=> Propert_Deductible
+        DISABLE Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Propert_Deductible.Trimmed Column: $'''I''' Row: FirstFreeRowColumn_E
+        DISABLE Text.Replace Text: CurrentItem TextToFind: $'''(?<=\\d{5}\\s*\\d+\\W\\s*)\\d+\\W|(?<=\\s{30}\\s+)\\d+\\W''' IsRegEx: True IgnoreCase: False ReplaceWith: $'''%''%''' ActivateEscapeSequences: False Result=> CurrentItem
+        DISABLE Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''(?<=\\d{5}\\s+)\\d+\\W''' StartingPosition: 0 IgnoreCase: False Match=> Building_Deductible
+        DISABLE Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Building_Deductible.Trimmed Column: $'''H''' Row: FirstFreeRowColumn_E
+    DISABLE END
+END

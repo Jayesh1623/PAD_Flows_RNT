@@ -1,0 +1,144 @@
+**REGION Process_Log_Region
+DateTime.GetCurrentDateTime.Local DateTimeFormat: DateTime.DateTimeFormat.DateAndTime CurrentDateTime=> CurrentDateTime2_PL
+Text.ConvertDateTimeToText.FromCustomDateTime DateTime: CurrentDateTime2_PL CustomFormat: $'''dd/MM/yyyy hh:mm:ss tt''' Result=> FormattedDateTime
+Text.ConvertDateTimeToText.FromCustomDateTime DateTime: CurrentDateTime2_PL CustomFormat: $'''dd/MM/yyyy''' Result=> CustomDate
+SET LogID TO LogIDS[13]
+SET Log_Type TO LogType[0]
+SET Item_Status TO ItemStatus[0]
+SET Subflow TO SubflowNames[16]
+SET ExceptionType TO $'''%''%'''
+DISABLE CALL Global_Logs
+Text.Replace Text: CustomDate TextToFind: $'''/''' IsRegEx: False IgnoreCase: False ReplaceWith: $'''_''' ActivateEscapeSequences: False Result=> CustomDate
+SET Descrip TO In_Description[0]
+SET ProcessLog TO $'''**********************************************************
+Policy: %Policy_Symbol%-%Policy_Number%-%Policy_Mod%
+Date And Time Flow Started: %FormattedDateTime%
+SubflowName: %Subflow%
+Description: %Subflow% %Descrip%'''
+File.WriteText File: $'''C:\\Users\\Jayesh Patil\\OneDrive - RABBIT AND TORTOISE TECHNOLOGY SOLUTIONS PRIVATE LIMITED\\Desktop\\Manual_CPP\\Manual_CPP_Logs\\Process Logs\\ProcesLog_%CustomDate%''' TextToWrite: ProcessLog AppendNewLine: True IfFileExists: File.IfFileExists.Append Encoding: File.FileEncoding.Unicode
+SET Descrip TO $'''%Subflow% %In_Description[0]%'''
+**ENDREGION
+Excel.SetActiveWorksheet.ActivateWorksheetByName Instance: ExcelInstance Name: $'''Earth Movement'''
+Pdf.ExtractTextFromPDF.ExtractText PDFFile: File_Path DetectLayout: True ExtractedText=> StructuredPDFText
+Text.ParseText.RegexParseForFirstOccurrence Text: StructuredPDFText TextToFind: $'''(?<=EARTH MOVEMENT PROPOSED COVERAGE\\s).*(\\n.*)*?(?=Total Earth Movement Premium).*(\\n.*?)*?(?=Page).*''' StartingPosition: 0 IgnoreCase: False Match=> Match
+IF IsNotEmpty(Match) THEN
+    Text.ParseText.RegexParse Text: Match TextToFind: $'''(?<=Page\\s)\\d+''' StartingPosition: 0 IgnoreCase: False Matches=> Pages
+    Text.ParseText.RegexParseForFirstOccurrence Text: Match TextToFind: $'''(?<=Maximum Per “Occurrence” Limit Of Insurance\\s*)\\$.*''' StartingPosition: 0 IgnoreCase: False Match=> PER_Occ
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''Maximum Per Occurrence Limit Of Insurance''' Column: $'''A''' Row: 1
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: PER_Occ Column: $'''B''' Row: 1
+    Text.ParseText.RegexParseForFirstOccurrence Text: Match TextToFind: $'''(?<=Maximum Annual Aggregate Limit Of Insurance\\s*)\\$.*''' StartingPosition: 0 IgnoreCase: False Match=> Ann_Agg
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''Maximum Annual Aggregate Limit Of Insurance''' Column: $'''A''' Row: 2
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Ann_Agg Column: $'''B''' Row: 2
+ELSE
+    SET ExceptionType TO $'''Business Exception'''
+    SET Item_Status TO ItemStatus[1]
+    SET Log_Type TO LogType[1]
+    DISABLE SET Business_Exception TO $'''%Business_Exception%_Form No %CurrentFormNo% data is not present for the Policy No %Policy_Number%.'''
+    SET Business_Exception TO $'''%Business_Exception% %CurrentFormNo%'''
+    SET Final_Status TO $'''Business Exception'''
+    SET Descrip TO $'''%Error_Description[7]% %CurrentFormNo% %Error_Description[8]% %Policy_Number%.'''
+    DISABLE SET Descrip TO CurrentFormNo
+    SET Subflow TO SubflowNames[16]
+    DISABLE CALL Global_Logs
+    CALL Error_Logs
+    GOTO Label_End
+END
+CALL Global_Logs
+SET Column TO 1
+SET A TO 4
+LOOP FOREACH CurrentPage IN Pages
+    Pdf.ExtractTablesFromPDF.ExtractTablesFromPage PDFFile: File_Path PageNumber: CurrentPage MultiPageTables: True SetFirstRowAsHeader: False ExtractedPDFTables=> ExtractedPDFTables
+    LOOP FOREACH CurrentITable IN ExtractedPDFTables
+        IF CurrentITable.DataTable.RowsCount < 3 THEN
+            Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: CurrentITable.DataTable Column: Column Row: 1
+            SET Column TO Column + A
+        ELSE
+            Excel.GetFirstFreeColumnRow Instance: ExcelInstance FirstFreeColumn=> FirstFreeColumn
+            Text.ParseText.RegexParseForFirstOccurrence Text: CurrentITable.DataTable TextToFind: $'''[A-z]*(?=\\sEARTH)\\sEARTH\\sMOVEMENT''' StartingPosition: 0 IgnoreCase: False Match=> Earth_Match
+            Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Earth_Match Column: FirstFreeColumn + 2 Row: 1
+            Text.ParseText.RegexParseForFirstOccurrence Text: CurrentITable.DataTable TextToFind: $'''(?<=Per “Occurrence” - Limit Of Insurance,.*)\\$.*''' StartingPosition: 0 IgnoreCase: False Match=> PER_Occ
+            IF IsEmpty(PER_Occ) THEN
+                Text.ParseText.ParseForFirstOccurrence Text: CurrentITable.DataTable TextToFind: $'''Location''' StartingPosition: 0 IgnoreCase: False OccurrencePosition=> Position
+                IF Position <> (-1) THEN
+                    Excel.GetFirstFreeColumnRow Instance: ExcelInstance FirstFreeColumn=> FirstFreeColumn_B FirstFreeRow=> FirstFreeRow_B
+                    LOOP LoopIndex_B FROM 0 TO CurrentITable.DataTable.RowsCount - 1 STEP 1
+                        Excel.GetFirstFreeRowOnColumn Instance: ExcelInstance Column: FirstFreeColumn_B - 1 FirstFreeRowOnColumn=> FirstFreeRowOnColumn_B
+                        SET Building_Address TO $'''%''%'''
+                        LOOP Colmn_Index2 FROM 2 TO CurrentITable.DataTable.Columns.Count - 3 STEP 1
+                            SET Building_Address TO $'''%Building_Address% %CurrentITable.DataTable[LoopIndex_B][Colmn_Index2]%'''
+                        END
+                        Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: CurrentITable.DataTable[LoopIndex_B][0] Column: FirstFreeColumn_B - 2 Row: FirstFreeRowOnColumn_B
+                        Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: CurrentITable.DataTable[LoopIndex_B][1] Column: FirstFreeColumn_B - 1 Row: FirstFreeRowOnColumn_B
+                        Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Building_Address Column: FirstFreeColumn_B Row: FirstFreeRowOnColumn_B
+                        Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: CurrentITable.DataTable[LoopIndex_B][CurrentITable.DataTable.Columns.Count - 2] Column: FirstFreeColumn_B + 1 Row: FirstFreeRowOnColumn_B
+                        Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: CurrentITable.DataTable[LoopIndex_B][CurrentITable.DataTable.Columns.Count - 1] Column: FirstFreeColumn_B + 2 Row: FirstFreeRowOnColumn_B
+                    END
+                    GOTO Label_B
+                END
+                CALL EM
+                LABEL Label_B
+                Pdf.ExtractTextFromPDF.ExtractTextFromPage PDFFile: File_Path PageNumber: CurrentPage DetectLayout: True ExtractedText=> ExtractedPDFText_Page
+                IF Contains(ExtractedPDFText_Page, $'''BLANKET EARTH MOVEMENT''', True) THEN
+                    Excel.GetFirstFreeColumnRow Instance: ExcelInstance FirstFreeColumn=> FirstFreeColumn
+                    Text.ParseText.RegexParseForFirstOccurrence Text: ExtractedPDFText_Page TextToFind: $'''[A-z]*(?=\\sEARTH)\\sEARTH\\sMOVEMENT''' StartingPosition: 0 IgnoreCase: False Match=> Earth_Match
+                    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Earth_Match Column: FirstFreeColumn + 2 Row: 1
+                    Text.ParseText.RegexParseForFirstOccurrence Text: ExtractedPDFText_Page TextToFind: $'''(?<=Per “Occurrence” - Limit Of Insurance\\s.*)\\$.*''' StartingPosition: 0 IgnoreCase: False Match=> PER_Occ
+                    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''Per “Occurrence” - Limit Of Insurance''' Column: FirstFreeColumn + 2 Row: 2
+                    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: PER_Occ Column: FirstFreeColumn + 3 Row: 2
+                    Text.ParseText.RegexParseForFirstOccurrence Text: ExtractedPDFText_Page TextToFind: $'''(?<=Annual Aggregate - Limit Of Insurance\\s.*)\\$.*''' StartingPosition: 0 IgnoreCase: False Match=> Ann_Agg
+                    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''Annual Aggregate - Limit Of Insurance''' Column: FirstFreeColumn + 2 Row: 3
+                    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Ann_Agg Column: FirstFreeColumn + 3 Row: 3
+                    Text.ParseText.RegexParseForFirstOccurrence Text: ExtractedPDFText_Page TextToFind: $'''(?<=Premium,?.*)\\$.*''' StartingPosition: 0 IgnoreCase: False Match=> Flood_Premium
+                    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''Premium''' Column: FirstFreeColumn + 2 Row: 4
+                    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Flood_Premium Column: FirstFreeColumn + 3 Row: 4
+                    GOTO Label_A
+                END
+                Excel.GetFirstFreeColumnRow Instance: ExcelInstance FirstFreeColumn=> FirstFreeColumn_On_Flood
+                SET Column TO FirstFreeColumn_On_Flood + 2
+                NEXT LOOP
+            END
+            Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''Per “Occurrence” - Limit Of Insurance''' Column: FirstFreeColumn + 2 Row: 2
+            Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: PER_Occ Column: FirstFreeColumn + 3 Row: 2
+            Text.ParseText.RegexParseForFirstOccurrence Text: CurrentITable.DataTable TextToFind: $'''(?<=Annual Aggregate - Limit Of Insurance,.*)\\$.*''' StartingPosition: 0 IgnoreCase: False Match=> Ann_Agg
+            Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''Annual Aggregate - Limit Of Insurance''' Column: FirstFreeColumn + 2 Row: 3
+            Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Ann_Agg Column: FirstFreeColumn + 3 Row: 3
+            Text.ParseText.RegexParseForFirstOccurrence Text: CurrentITable.DataTable TextToFind: $'''(?<=Premium,.*)\\$.*''' StartingPosition: 0 IgnoreCase: False Match=> Flood_Premium
+            Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''Premium''' Column: FirstFreeColumn + 2 Row: 4
+            Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Flood_Premium Column: FirstFreeColumn + 3 Row: 4
+            LOOP LoopIndex FROM 0 TO CurrentITable.DataTable.RowsCount - 1 STEP 1
+                SET Building_Address TO $'''%''%'''
+                IF LoopIndex >= 6 THEN
+                    LOOP Colmn_Index FROM 2 TO CurrentITable.DataTable.Columns.Count - 3 STEP 1
+                        SET Building_Address TO $'''%Building_Address% %CurrentITable.DataTable[LoopIndex][Colmn_Index]%'''
+                        Text.Trim Text: Building_Address TrimOption: Text.TrimOption.Both TrimmedText=> Building_Address
+                    END
+                    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: CurrentITable.DataTable[LoopIndex][0] Column: FirstFreeColumn + 2 Row: LoopIndex - 1
+                    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: CurrentITable.DataTable[LoopIndex][1] Column: FirstFreeColumn + 3 Row: LoopIndex - 1
+                    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Building_Address Column: FirstFreeColumn + 4 Row: LoopIndex - 1
+                    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: CurrentITable.DataTable[LoopIndex][CurrentITable.DataTable.Columns.Count - 2] Column: FirstFreeColumn + 5 Row: LoopIndex - 1
+                    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: CurrentITable.DataTable[LoopIndex][CurrentITable.DataTable.Columns.Count - 1] Column: FirstFreeColumn + 6 Row: LoopIndex - 1
+                END
+            END
+        END
+        Excel.GetFirstFreeColumnRow Instance: ExcelInstance FirstFreeColumn=> FirstFreeColumn_On_Flood
+        SET Column TO FirstFreeColumn_On_Flood + 2
+    END
+    Excel.GetFirstFreeColumnRow Instance: ExcelInstance FirstFreeColumn=> FirstFreeColumn_On_Flood
+    SET Column TO FirstFreeColumn_On_Flood + 2
+    LABEL Label_A
+END
+**REGION Process_Log
+DateTime.GetCurrentDateTime.Local DateTimeFormat: DateTime.DateTimeFormat.DateAndTime CurrentDateTime=> CurrentDateTime2_PL
+Text.ConvertDateTimeToText.FromCustomDateTime DateTime: CurrentDateTime2_PL CustomFormat: $'''dd/MM/yyyy hh:mm:ss tt''' Result=> FormattedDateTime
+Text.ConvertDateTimeToText.FromCustomDateTime DateTime: CurrentDateTime2_PL CustomFormat: $'''dd/MM/yyyy''' Result=> CustomDate
+Text.Replace Text: CustomDate TextToFind: $'''/''' IsRegEx: False IgnoreCase: False ReplaceWith: $'''_''' ActivateEscapeSequences: False Result=> CustomDate
+SET Subflow TO SubflowNames[16]
+SET Descrip TO In_Description[1]
+SET ProcessLog TO $'''**********************************************************
+Policy: %Policy_Symbol%-%Policy_Number%-%Policy_Mod%
+Date And Time Flow Started: %FormattedDateTime%
+SubflowName: %Subflow%
+Description: %Subflow% %Descrip%'''
+File.WriteText File: $'''C:\\Users\\Jayesh Patil\\OneDrive - RABBIT AND TORTOISE TECHNOLOGY SOLUTIONS PRIVATE LIMITED\\Desktop\\Manual_CPP\\Manual_CPP_Logs\\Process Logs\\ProcesLog_%CustomDate%''' TextToWrite: ProcessLog AppendNewLine: True IfFileExists: File.IfFileExists.Append Encoding: File.FileEncoding.Unicode
+**ENDREGION
+LABEL Label_End

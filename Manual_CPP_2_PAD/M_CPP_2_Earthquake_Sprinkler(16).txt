@@ -1,0 +1,46 @@
+Pdf.ExtractTextFromPDF.ExtractText PDFFile: $'''C:\\Users\\Jayesh Patil\\Desktop\\JP1623\\Arete Associates QPP.pdf''' DetectLayout: False ExtractedText=> ExtractedPDFText
+DISABLE Excel.SetActiveWorksheet.ActivateWorksheetByName Instance: ExcelInstance Name: $'''Earthquake Sprinkler'''
+Text.ParseText.RegexParseForFirstOccurrence Text: ExtractedPDFText TextToFind: $'''(?<=EARTHQUAKE SPRINKLER LEAKAGE PROPOSED COVERAGE\\s).*(\\n.*)*(?=Total Earthquake Sprinkler Leakage Premium)''' StartingPosition: 0 IgnoreCase: False Match=> Match
+Excel.LaunchExcel.LaunchUnderExistingProcess Visible: True Instance=> ExcelInstance
+Text.ParseText.RegexParse Text: Match TextToFind: $'''\\d+.*(?<=[$]).*''' StartingPosition: 0 IgnoreCase: False Matches=> Code_list
+Text.ParseText.RegexParseForFirstOccurrence Text: Match TextToFind: $'''(?<=Maximum Per “Occurrence” Limit Of Insurance\\s).*''' StartingPosition: 0 IgnoreCase: False Match=> Max_Per_Occ_Limit_Ins
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''Maximum Per “Occurrence” Limit Of Insurance''' Column: $'''A''' Row: 1
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Max_Per_Occ_Limit_Ins Column: $'''B''' Row: 1
+Text.ParseText.RegexParseForFirstOccurrence Text: Match TextToFind: $'''(?<=Maximum Annual Aggregate Limit Of Insurance\\s).*''' StartingPosition: 0 IgnoreCase: False Match=> Max_Ann_Agg_Limit_Ins
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''Maximum Annual Aggregate Limit Of Insurance''' Column: $'''A''' Row: 2
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Max_Ann_Agg_Limit_Ins Column: $'''B''' Row: 2
+Text.ParseText.RegexParseForFirstOccurrence Text: Match TextToFind: $'''(?<=Per “Occurrence” - Limit Of Insurance\\s).*''' StartingPosition: 0 IgnoreCase: False Match=> Per_Occ_Limit_Ins
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''Per “Occurrence” - Limit Of Insurance''' Column: $'''E''' Row: 2
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Per_Occ_Limit_Ins Column: $'''F''' Row: 2
+Text.ParseText.RegexParseForFirstOccurrence Text: Match TextToFind: $'''(?<=Annual Aggregate - Limit Of Insurance\\s).*''' StartingPosition: 0 IgnoreCase: False Match=> Ann_Agg_Limit_Ins
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''Annual Aggregate - Limit Of Insurance''' Column: $'''E''' Row: 3
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Ann_Agg_Limit_Ins Column: $'''F''' Row: 3
+Text.ParseText.RegexParseForFirstOccurrence Text: Match TextToFind: $'''(?<=Premium\\s)\\$\\d+,?\\d+''' StartingPosition: 0 IgnoreCase: False Match=> Premium
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''Premium''' Column: $'''E''' Row: 4
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Premium Column: $'''F''' Row: 4
+Text.ParseText.RegexParseForFirstOccurrence Text: Match TextToFind: $'''(?<=Additional Premium to Meet Minimum Premium\\s).*''' StartingPosition: 0 IgnoreCase: False Match=> Add_Pre_Meet_Min_Pre
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''Additional Premium to Meet Minimum Premium''' Column: $'''L''' Row: 1
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Add_Pre_Meet_Min_Pre Column: $'''M''' Row: 1
+Text.ParseText.RegexParseForFirstOccurrence Text: ExtractedPDFText TextToFind: $'''(?<=Total Earthquake Sprinkler Leakage Premium\\s).*(?=Avenues Package Product)''' StartingPosition: 0 IgnoreCase: False Match=> Total_Earthquake_Sprink_LKG_Premi
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''Total Earthquake Sprinkler Leakage Premium''' Column: $'''L''' Row: 2
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Total_Earthquake_Sprink_LKG_Premi Column: $'''M''' Row: 2
+SET RowIndex TO 2
+Excel.GetFirstFreeRowOnColumn Instance: ExcelInstance Column: $'''E''' FirstFreeRowOnColumn=> FirstFreeRowColumn_E
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''Location No.''' Column: $'''E''' Row: FirstFreeRowColumn_E
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''Building No.''' Column: $'''F''' Row: FirstFreeRowColumn_E
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''Building Address''' Column: $'''G''' Row: FirstFreeRowColumn_E
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''Building Deductible''' Column: $'''H''' Row: FirstFreeRowColumn_E
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''Personal Property Deductible''' Column: $'''I''' Row: FirstFreeRowColumn_E
+LOOP FOREACH CurrentItem IN Code_list
+    Excel.GetFirstFreeRowOnColumn Instance: ExcelInstance Column: $'''E''' FirstFreeRowOnColumn=> FirstFreeRowColumn_E
+    Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''^\\d+(?=\\s\\d+.*[,])''' StartingPosition: 0 IgnoreCase: False Match=> Location_No
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Location_No Column: $'''E''' Row: FirstFreeRowColumn_E
+    Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''(?<=\\d+\\s)\\d+(?=\\s\\d+)''' StartingPosition: 0 IgnoreCase: False Match=> Building_No
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Building_No Column: $'''F''' Row: FirstFreeRowColumn_E
+    Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''(?<=\\d+\\s.*\\d+\\s).*(?=\\s\\$.*\\$.*)|(?<=\\d+\\s.*\\d+\\s).*(?=\\s\\$\\d+)|(?<=\\d+\\s.*\\d+\\s).*''' StartingPosition: 0 IgnoreCase: False Match=> Building_Address
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Building_Address Column: $'''G''' Row: FirstFreeRowColumn_E
+    Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''\\$\\d+,?\\d+,?\\d+(?=\\s\\$)''' StartingPosition: 0 IgnoreCase: False Match=> Building_Deductible
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Building_Deductible Column: $'''H''' Row: FirstFreeRowColumn_E
+    Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''(?<=\\d+\\s)\\$\\d{0,9},?\\d{0,9},?\\d{0,9}''' StartingPosition: 0 IgnoreCase: False Match=> Propert_Deductible
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Propert_Deductible Column: $'''I''' Row: FirstFreeRowColumn_E
+END

@@ -1,0 +1,179 @@
+**REGION Process_Log_Region
+DateTime.GetCurrentDateTime.Local DateTimeFormat: DateTime.DateTimeFormat.DateAndTime CurrentDateTime=> CurrentDateTime2_PL
+Text.ConvertDateTimeToText.FromCustomDateTime DateTime: CurrentDateTime2_PL CustomFormat: $'''dd/MM/yyyy hh:mm:ss tt''' Result=> FormattedDateTime
+Text.ConvertDateTimeToText.FromCustomDateTime DateTime: CurrentDateTime2_PL CustomFormat: $'''dd/MM/yyyy''' Result=> CustomDate
+SET LogID TO LogIDS[0]
+SET Log_Type TO LogType[0]
+SET Item_Status TO ItemStatus[0]
+SET Subflow TO SubflowNames[23]
+SET Descrip TO $'''%Subflow% %In_Description[0]%'''
+SET ExceptionType TO $'''%''%'''
+CALL Global_Logs
+Text.Replace Text: CustomDate TextToFind: $'''/''' IsRegEx: False IgnoreCase: False ReplaceWith: $'''_''' ActivateEscapeSequences: False Result=> CustomDate
+SET Subflow TO SubflowNames[23]
+SET Descrip TO In_Description[0]
+SET ProcessLog TO $'''**********************************************************
+Policy: %Policy_Symbol%-%Policy_Number%-%Policy_Mod%
+Date And Time Flow Started: %FormattedDateTime%
+SubflowName: %Subflow%
+Description: %Subflow% %Descrip%'''
+File.WriteText File: $'''C:\\Users\\Jayesh Patil\\OneDrive - RABBIT AND TORTOISE TECHNOLOGY SOLUTIONS PRIVATE LIMITED\\Desktop\\Manual_CPP\\Manual_CPP_Logs\\Process Logs\\ProcesLog_%CustomDate%''' TextToWrite: ProcessLog AppendNewLine: True IfFileExists: File.IfFileExists.Append Encoding: File.FileEncoding.Unicode
+**ENDREGION
+DateTime.GetCurrentDateTime.Local DateTimeFormat: DateTime.DateTimeFormat.DateAndTime CurrentDateTime=> DateTime
+Text.ConvertDateTimeToText.FromCustomDateTime DateTime: DateTime CustomFormat: $'''dd/MM/yyyy''' Result=> Date
+Text.ConvertDateTimeToText.FromCustomDateTime DateTime: DateTime CustomFormat: $'''hh:mm:ss''' Result=> Start_Time
+SET Email_Attachment TO CurrentEmail.Attachments
+SET Body TO CurrentEmail.BodyText
+**REGION Policy Number
+Text.CropText.CropTextBetweenFlags Text: Body FromFlag: $'''Policy Number''' ToFlag: $'''Policy Mod''' IgnoreCase: True CroppedText=> CroppedText
+Text.ParseText.RegexParseForFirstOccurrence Text: CroppedText TextToFind: $'''\\d{7}''' StartingPosition: 0 IgnoreCase: False Match=> Policy_Number
+IF IsEmpty(Policy_Number) THEN
+    SET ExceptionType TO $'''Business Exception'''
+    SET Item_Status TO ItemStatus[1]
+    SET Log_Type TO LogType[1]
+    SET System_Error TO $'''False'''
+    SET Email_Read TO $'''%''%'''
+    SET Exception TO $'''True'''
+    SET Final_Status TO $'''Business Exception'''
+    SET Business_Exception TO Error_Description[0]
+    SET Subflow TO SubflowNames[23]
+    SET Descrip TO Error_Description[0]
+    CALL SendMail_Flow
+    NEXT LOOP
+END
+**ENDREGION
+IF IsEmpty(Email_Attachment) THEN
+    SET ExceptionType TO $'''Business Exception'''
+    SET Item_Status TO ItemStatus[1]
+    SET Log_Type TO LogType[1]
+    SET System_Error TO $'''False'''
+    SET Exception TO $'''True'''
+    SET Final_Status TO $'''Business Exception'''
+    SET Business_Exception TO $'''%Error_Description[1]% %Policy_Number%'''
+    SET Subflow TO SubflowNames[23]
+    SET Descrip TO $'''%Error_Description[1]% %Policy_Number%.'''
+    CALL SendMail_Flow
+    NEXT LOOP
+END
+**REGION Policy Symbol
+Text.CropText.CropTextBetweenFlags Text: Body FromFlag: $'''Policy Symbol''' ToFlag: $'''Policy Number''' IgnoreCase: True CroppedText=> CroppedText
+Text.ParseText.RegexParseForFirstOccurrence Text: CroppedText TextToFind: $'''[A-z]{3}''' StartingPosition: 0 IgnoreCase: False Match=> Policy_Symbol
+IF IsEmpty(Policy_Symbol) THEN
+    SET ExceptionType TO $'''Business Exception'''
+    SET Item_Status TO ItemStatus[1]
+    SET Log_Type TO LogType[1]
+    SET System_Error TO $'''False'''
+    SET Exception TO $'''True'''
+    SET Final_Status TO $'''Business Exception'''
+    SET Business_Exception TO $'''%Error_Description[2]% %Policy_Number%.'''
+    SET Subflow TO SubflowNames[23]
+    SET Descrip TO $'''%Error_Description[2]% %Policy_Number%.'''
+    CALL SendMail_Flow
+    NEXT LOOP
+END
+**ENDREGION
+**REGION Policy Mod
+Text.CropText.CropTextBetweenFlags Text: Body FromFlag: $'''Policy Mod''' ToFlag: $'''Relatable Employees''' IgnoreCase: True CroppedText=> CroppedText
+Text.Trim Text: CroppedText TrimOption: Text.TrimOption.Both TrimmedText=> CroppedText
+Text.SplitText.Split Text: CroppedText StandardDelimiter: Text.StandardDelimiter.NewLine DelimiterTimes: 1 Result=> CroppedText_Split
+SET Policy_Mod TO CroppedText_Split[CroppedText_Split.Count - 1]
+IF IsEmpty(Policy_Mod) THEN
+    SET ExceptionType TO $'''Business Exception'''
+    SET Item_Status TO ItemStatus[1]
+    SET Log_Type TO LogType[1]
+    SET System_Error TO $'''False'''
+    SET Email_Read TO $'''%''%'''
+    SET Exception TO $'''True'''
+    SET Final_Status TO $'''Business Exception'''
+    SET Business_Exception TO $'''%Error_Description[3]% %Policy_Number%.'''
+    SET Subflow TO SubflowNames[23]
+    SET Descrip TO $'''%Error_Description[3]% %Policy_Number%.'''
+    CALL SendMail_Flow
+    NEXT LOOP
+END
+**ENDREGION
+Text.Replace Text: Body TextToFind: $'''(?<=[A-z])\\r?\\n|(?<=\\d+)\\r?\\n''' IsRegEx: True IgnoreCase: False ReplaceWith: $'''%''%''' ActivateEscapeSequences: False Result=> Body
+**REGION Relatable Employees
+Text.CropText.CropTextBetweenFlags Text: Body FromFlag: $'''Relatable Employees''' ToFlag: $'''ERISA Plan Name ''' IgnoreCase: True CroppedText=> CroppedText
+Text.Trim Text: CroppedText TrimOption: Text.TrimOption.Both TrimmedText=> CroppedText
+Text.SplitText.Split Text: CroppedText StandardDelimiter: Text.StandardDelimiter.NewLine DelimiterTimes: 1 Result=> CroppedText_Split
+SET Relatable_Employees TO CroppedText_Split[CroppedText_Split.Count - 1]
+IF IsEmpty(Relatable_Employees) THEN
+    SET ExceptionType TO $'''Business Exception'''
+    SET Item_Status TO ItemStatus[1]
+    SET Log_Type TO LogType[1]
+    SET System_Error TO $'''False'''
+    SET Email_Read TO $'''%''%'''
+    SET Exception TO $'''True'''
+    SET Final_Status TO $'''Business Exception'''
+    SET Business_Exception TO $'''%Error_Description[4]% %Policy_Number%.'''
+    SET Subflow TO SubflowNames[23]
+    SET Descrip TO $'''%Error_Description[4]% No %Policy_Number%.'''
+    CALL SendMail_Flow
+    NEXT LOOP
+END
+**ENDREGION
+**REGION ERISA Plan Name
+Text.CropText.CropTextBetweenFlags Text: Body FromFlag: $'''ERISA Plan Name ''' ToFlag: $'''ERISA Total Asset Value''' IgnoreCase: True CroppedText=> CroppedText
+Text.Trim Text: CroppedText TrimOption: Text.TrimOption.Both TrimmedText=> CroppedText
+Text.SplitText.Split Text: CroppedText StandardDelimiter: Text.StandardDelimiter.NewLine DelimiterTimes: 1 Result=> CroppedText_Split
+SET ERISA_Plan_Name TO CroppedText_Split[CroppedText_Split.Count - 1]
+IF IsEmpty(ERISA_Plan_Name) THEN
+    SET ExceptionType TO $'''Business Exception'''
+    SET Item_Status TO ItemStatus[1]
+    SET Log_Type TO LogType[1]
+    SET System_Error TO $'''False'''
+    SET Email_Read TO $'''%''%'''
+    SET Exception TO $'''True'''
+    SET Final_Status TO $'''Business Exception'''
+    SET Business_Exception TO $'''%Error_Description[5]% %Policy_Number%.'''
+    SET Subflow TO SubflowNames[23]
+    SET Descrip TO $'''%Error_Description[5]% %Policy_Number%.'''
+    CALL SendMail_Flow
+    NEXT LOOP
+END
+**ENDREGION
+**REGION ERISA Total Asset Value
+Text.CropText.CropTextBetweenFlags Text: Body FromFlag: $'''ERISA Total Asset Value''' ToFlag: $'''401-0151''' IgnoreCase: True CroppedText=> CroppedText
+Text.Trim Text: CroppedText TrimOption: Text.TrimOption.Both TrimmedText=> CroppedText
+Text.SplitText.Split Text: CroppedText StandardDelimiter: Text.StandardDelimiter.NewLine DelimiterTimes: 1 Result=> CroppedText_Split
+SET ERISA_Total_Asset_Value TO CroppedText_Split[CroppedText_Split.Count - 1]
+IF IsEmpty(ERISA_Total_Asset_Value) THEN
+    SET ExceptionType TO $'''Business Exception'''
+    SET Item_Status TO ItemStatus[1]
+    SET Log_Type TO LogType[1]
+    SET System_Error TO $'''False'''
+    SET Email_Read TO $'''%''%'''
+    SET Exception TO $'''True'''
+    SET Final_Status TO $'''Business Exception'''
+    SET Business_Exception TO $'''%Error_Description[6]% %Policy_Number%.'''
+    SET Descrip TO $'''%Error_Description[6]% %Policy_Number%.'''
+    SET Subflow TO SubflowNames[23]
+    CALL SendMail_Flow
+    NEXT LOOP
+END
+**ENDREGION
+**REGION Form Numbers
+Text.ParseText.RegexParse Text: Body TextToFind: $'''\\d+\\-\\d+\\s?\\-?\\w.*(\\n.*?)*?(?=\\n\\d+\\-)|\\d+\\-\\d+\\s?\\-?\\w.*(\\n.*)*(?=X).|\\d+\\-\\d+\\s?\\-?\\w.*(\\n.*)*(?=N\\W\\A)...''' StartingPosition: 0 IgnoreCase: False Matches=> Result
+Variables.CreateNewList List=> Form_Nos
+LOOP FOREACH CurrentResult IN Result
+    IF Contains(CurrentResult, $'''X''', False) THEN
+        Text.ParseText.RegexParseForFirstOccurrence Text: CurrentResult TextToFind: $'''\\d+\\-\\d+\\s?\\-?\\w''' StartingPosition: 0 IgnoreCase: False Match=> Form_No
+        Variables.AddItemToList Item: Form_No List: Form_Nos
+    END
+END
+**ENDREGION
+**REGION Process_Log
+DateTime.GetCurrentDateTime.Local DateTimeFormat: DateTime.DateTimeFormat.DateAndTime CurrentDateTime=> CurrentDateTime2_PL
+Text.ConvertDateTimeToText.FromCustomDateTime DateTime: CurrentDateTime2_PL CustomFormat: $'''dd/MM/yyyy hh:mm:ss tt''' Result=> FormattedDateTime
+Text.ConvertDateTimeToText.FromCustomDateTime DateTime: CurrentDateTime2_PL CustomFormat: $'''dd/MM/yyyy''' Result=> CustomDate
+Text.Replace Text: CustomDate TextToFind: $'''/''' IsRegEx: False IgnoreCase: False ReplaceWith: $'''_''' ActivateEscapeSequences: False Result=> CustomDate
+SET Subflow TO SubflowNames[23]
+SET Descrip TO In_Description[1]
+SET ProcessLog TO $'''**********************************************************
+Policy: %Policy_Symbol%-%Policy_Number%-%Policy_Mod%
+Date And Time Flow Started: %FormattedDateTime%
+SubflowName: %Subflow%
+Description: %Subflow% %Descrip%'''
+File.WriteText File: $'''C:\\Users\\Jayesh Patil\\OneDrive - RABBIT AND TORTOISE TECHNOLOGY SOLUTIONS PRIVATE LIMITED\\Desktop\\Manual_CPP\\Manual_CPP_Logs\\Process Logs\\ProcesLog_%CustomDate%''' TextToWrite: ProcessLog AppendNewLine: True IfFileExists: File.IfFileExists.Append Encoding: File.FileEncoding.Unicode
+**ENDREGION

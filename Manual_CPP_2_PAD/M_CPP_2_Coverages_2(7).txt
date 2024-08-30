@@ -1,0 +1,126 @@
+Excel.ReadFromExcel.ReadAllCells Instance: ExcelInstance ReadAsText: False FirstLineIsHeader: True RangeValue=> ExcelData
+Excel.SetActiveWorksheet.ActivateWorksheetByName Instance: ExcelInstance Name: $'''Coverages'''
+Variables.CreateNewList List=> List
+Variables.CreateNewList List=> ListA
+Variables.CreateNewList List=> List2
+Variables.CreateNewList List=> ListB
+Variables.CreateNewList List=> List3
+Variables.CreateNewList List=> ListC
+Variables.CreateNewList List=> List4
+Variables.CreateNewList List=> ListD
+LOOP FOREACH CurrentItem IN ExcelData
+    IF Contains(CurrentItem['Subject Insurance'], $'''Blanket Building and Contents''', False) THEN
+        IF Contains(CurrentItem['Premium'], $'''Included In Blanket''', True) THEN
+            Variables.AddItemToList Item: $'''Location %CurrentItem[13]%''' List: List
+            Variables.RemoveDuplicateItemsFromList List: List IgnoreCase: False
+        END
+    END
+    IF Contains(CurrentItem[3], $'''Business Income''', False) THEN
+        IF Contains(CurrentItem['Premium'], $'''Included In Blanket''', True) THEN
+            Variables.AddItemToList Item: $'''Location %CurrentItem[13]%''' List: List2
+            Variables.RemoveDuplicateItemsFromList List: List2 IgnoreCase: False
+        END
+    END
+    IF CurrentItem[3] = $'''Building - Blanket Building''' THEN
+        IF Contains(CurrentItem['Premium'], $'''Included In Blanket''', True) THEN
+            Variables.AddItemToList Item: $'''Location %CurrentItem[13]%''' List: List3
+            Variables.RemoveDuplicateItemsFromList List: List3 IgnoreCase: False
+        END
+    END
+    IF CurrentItem[3] = $'''Contents All Inclusive - Blanket Personal Property''' THEN
+        IF Contains(CurrentItem['Premium'], $'''Included In Blanket''', True) THEN
+            Variables.AddItemToList Item: $'''Location %CurrentItem[13]%''' List: List4
+            Variables.RemoveDuplicateItemsFromList List: List4 IgnoreCase: False
+        END
+    ELSE IF CurrentItem[3] = $'''Contents All Inclusive''' THEN
+        IF Contains(CurrentItem['Premium'], $'''Included In Blanket''', False) THEN
+            Variables.AddItemToList Item: $'''Location %CurrentItem[13]%''' List: List4
+            Variables.RemoveDuplicateItemsFromList List: List4 IgnoreCase: False
+        END
+    END
+END
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: List Column: $'''R''' Row: 2
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: List2 Column: $'''U''' Row: 2
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: List3 Column: $'''X''' Row: 2
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: List4 Column: $'''AA''' Row: 2
+SET RowIndex TO 2
+LOOP FOREACH CurrentListItem IN List
+    Variables.ClearList List: ListA
+    LOOP FOREACH CurrentItem IN ExcelData
+        IF Contains(CurrentListItem, CurrentItem[13], False) THEN
+            IF Contains(CurrentItem[3], $'''Blanket Building and Contents''', False) THEN
+                Variables.AddItemToList Item: CurrentItem[14] List: ListA
+                Variables.RemoveDuplicateItemsFromList List: ListA IgnoreCase: False
+            END
+        END
+    END
+    Text.JoinText.JoinWithCustomDelimiter List: ListA CustomDelimiter: $''', ''' Result=> JoinedText
+    IF JoinedText.Length > 1 THEN
+        Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''Buildings %JoinedText%''' Column: $'''S''' Row: RowIndex
+    ELSE
+        Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''Building %JoinedText%''' Column: $'''S''' Row: RowIndex
+    END
+    SET RowIndex TO RowIndex + 1
+END
+SET RowIndex TO 2
+LOOP FOREACH CurrentListItem IN List2
+    Variables.ClearList List: ListB
+    LOOP FOREACH CurrentItem IN ExcelData
+        IF Contains(CurrentListItem, CurrentItem[13], False) THEN
+            IF Contains(CurrentItem[3], $'''Business Income''', False) THEN
+                Variables.AddItemToList Item: CurrentItem[14] List: ListB
+                Variables.RemoveDuplicateItemsFromList List: ListB IgnoreCase: False
+            END
+        END
+    END
+    Text.JoinText.JoinWithCustomDelimiter List: ListB CustomDelimiter: $''', ''' Result=> JoinedText2
+    IF JoinedText2.Length > 1 THEN
+        Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''Buildings %JoinedText2%''' Column: $'''V''' Row: RowIndex
+    ELSE
+        Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''Building %JoinedText2%''' Column: $'''V''' Row: RowIndex
+    END
+    SET RowIndex TO RowIndex + 1
+END
+SET RowIndex TO 2
+LOOP FOREACH CurrentListItem IN List3
+    Variables.ClearList List: ListC
+    LOOP FOREACH CurrentItem IN ExcelData
+        IF Contains(CurrentListItem, CurrentItem[13], False) THEN
+            IF CurrentItem[3] = $'''Building - Blanket Building''' THEN
+                Variables.AddItemToList Item: CurrentItem[14] List: ListC
+                Variables.RemoveDuplicateItemsFromList List: ListC IgnoreCase: False
+            END
+        END
+    END
+    Text.JoinText.JoinWithCustomDelimiter List: ListC CustomDelimiter: $''', ''' Result=> JoinedText3
+    IF JoinedText3.Length > 1 THEN
+        Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''Buildings %JoinedText3%''' Column: $'''Y''' Row: RowIndex
+    ELSE
+        Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''Building %JoinedText3%''' Column: $'''Y''' Row: RowIndex
+    END
+    DISABLE Text.JoinText.JoinWithCustomDelimiter List: ListB CustomDelimiter: $''',''' Result=> JoinedText2
+    SET RowIndex TO RowIndex + 1
+END
+SET RowIndex TO 2
+LOOP FOREACH CurrentListItem IN List4
+    Variables.ClearList List: ListD
+    LOOP FOREACH CurrentItem IN ExcelData
+        IF Contains(CurrentListItem, CurrentItem[13], False) THEN
+            IF CurrentItem[3] = $'''Contents All Inclusive - Blanket Personal Property''' THEN
+                Variables.AddItemToList Item: CurrentItem[14] List: ListD
+                Variables.RemoveDuplicateItemsFromList List: ListD IgnoreCase: False
+            ELSE IF CurrentItem[3] = $'''Contents All Inclusive''' THEN
+                Variables.AddItemToList Item: CurrentItem[14] List: ListD
+                Variables.RemoveDuplicateItemsFromList List: ListD IgnoreCase: False
+            END
+        END
+    END
+    Text.JoinText.JoinWithCustomDelimiter List: ListD CustomDelimiter: $''', ''' Result=> JoinedText4
+    IF JoinedText4.Length > 1 THEN
+        Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''Buildings %JoinedText4%''' Column: $'''AB''' Row: RowIndex
+    ELSE
+        Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''Building %JoinedText4%''' Column: $'''AB''' Row: RowIndex
+    END
+    DISABLE Text.JoinText.JoinWithCustomDelimiter List: ListB CustomDelimiter: $''',''' Result=> JoinedText2
+    SET RowIndex TO RowIndex + 1
+END

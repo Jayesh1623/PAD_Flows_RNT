@@ -1,0 +1,13 @@
+CALL Initialization
+LOOP FOREACH Match IN Matches
+    CALL Start
+    CALL Extraction_Flow
+    CALL '510(K)_Table'
+    CALL Recalls_Details
+    CALL Maude_Details
+    CALL Inspections_Details
+    CALL Warning_Letters
+    CALL Close_All_Applications
+END
+WebAutomation.CloseWebBrowser BrowserInstance: Browser1
+Excel.CloseExcel.Close Instance: ExcelInstance

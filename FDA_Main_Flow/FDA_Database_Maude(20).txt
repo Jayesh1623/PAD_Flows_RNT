@@ -1,0 +1,7 @@
+Database.Connect ConnectionString: $'''Provider=MSOLEDBSQL.1;Password=fda_dev_login;Persist Security Info=True;User ID=fda_dev_login;Initial Catalog=fda_dev;Data Source=rntdbinstance.cywt4ngax3hu.us-east-2.rds.amazonaws.com;Initial File Name=\"\";Use Encryption for Data=True;Trust Server Certificate=True;Server SPN=\"\";Authentication=\"\";Access Token=\"\"''' Connection=> SQLConnection
+SET Created_By TO $'''Jayesh_P'''
+SET establishment_id TO 1001
+DateTime.GetCurrentDateTime.Local DateTimeFormat: DateTime.DateTimeFormat.DateAndTime CurrentDateTime=> CurrentDateTime
+Database.ExecuteSqlStatement.Execute Connection: SQLConnection Statement: $'''INSERT INTO maude  ( establishment_id, report_Number, event_date, fda_received_date,  report_lag, event_type, report_source, manufacturer_d, manufacturer_g, brand_name, mfg_device, manufacturer_review, event_text, mfg_narrative, available_for_evaluation, adverse_event_report, maude_link, created_by, created_date)
+VALUES( \'%establishment_id%\', \'%Report_Number_Maude%\', \'%Event_Date_Maude%\', \'%FDA_Received_Date_Maude%\', \'%Report_Lag%\', \'%Event_Type_Maude%\', \'%Report_Source_Maude%\', \'%Manufacturer_D_Maude%\', \'%Manufacturer_G_Maude%\', \'%Brand_Name%\', \'%Type_Of_Device%\', \'%Manufacturing_Review%\', \'%Event_Text_Maude%\', \'%Manufacturer_Narrative%\', \'%Was_Device_For_Evaluation_Maude%\', \'%Is_This_Adverse_Event_Report_Maude%\', \'%MAUDE_Link%\', \'%Created_By%\', \'%CurrentDateTime%\' );''' Timeout: 120
+Database.Close Connection: SQLConnection

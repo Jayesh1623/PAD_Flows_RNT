@@ -1,0 +1,24 @@
+Excel.SetActiveWorksheet.ActivateWorksheetByName Instance: ExcelInstance Name: $'''Cyber Liability'''
+DISABLE Text.ParseText.RegexParseForFirstOccurrence Text: ExtractedPDFText TextToFind: $'''(?<=Cyber Liability Proposed Coverages\\s).*([\\s\\S]+?)(?=Avenues Package Product)''' StartingPosition: 0 IgnoreCase: False Match=> Match
+Text.ParseText.RegexParseForFirstOccurrence Text: ExtractedPDFText TextToFind: $'''(?<=Cyber Liability Proposed Coverages\\s).*(\\n.*)*(?=Forms Applicable To Cyber Liability Coverage Part:)''' StartingPosition: 0 IgnoreCase: False Match=> Match
+Text.ParseText.RegexParseForFirstOccurrence Text: ExtractedPDFText TextToFind: $'''(?<= Forms Applicable To Cyber Liability Coverage Part:\\s).*([\\s\\S]+?)(?=Avenues Package Product)''' StartingPosition: 0 IgnoreCase: False Match=> Match2
+Text.ParseText.RegexParse Text: Match2 TextToFind: $'''.*(?=\\s\\d+\\/\\d+).*(\\n.*)*?''' StartingPosition: 0 IgnoreCase: False Matches=> Code_List
+SET RowIndex TO 2
+LOOP FOREACH CurrentItem IN Code_list
+    Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''.*(?=\\s\\d+\\/\\d+)''' StartingPosition: 0 IgnoreCase: False Match=> Form_Number
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Form_Number.Trimmed Column: $'''A''' Row: RowIndex
+    Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''(?<=\\d+\\w+?\\s)\\d+\\/\\d+(?=\\s)''' StartingPosition: 0 IgnoreCase: False Match=> Edition_Date
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Edition_Date.Trimmed Column: $'''B''' Row: RowIndex
+    Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''(?<=\\s\\d+\\/\\d+\\s).*(\\n.*)*?''' StartingPosition: 0 IgnoreCase: False Match=> Description
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Description.Trimmed Column: $'''C''' Row: RowIndex
+    Variables.IncreaseVariable Value: RowIndex IncrementValue: 1
+END
+Text.ParseText.RegexParseForFirstOccurrence Text: Match TextToFind: $'''(?<=Maximum Aggregate Limit of Liability:\\s)\\$.*''' StartingPosition: 0 IgnoreCase: False Match=> Max_Agg_Limit_Liabilty
+IF Contains(Max_Agg_Limit_Liabilty, $'''Avenues Package Product''', True) THEN
+    Text.Replace Text: Max_Agg_Limit_Liabilty TextToFind: $'''Avenues Package Product''' IsRegEx: False IgnoreCase: False ReplaceWith: $'''%''%''' ActivateEscapeSequences: False Result=> Max_Agg_Limit_Liabilty
+END
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Max_Agg_Limit_Liabilty.Trimmed Column: $'''G''' Row: 1
+Text.ParseText.RegexParseForFirstOccurrence Text: Match TextToFind: $'''(?<=Prior and Pending Proceedings Date:\\s).*''' StartingPosition: 0 IgnoreCase: False Match=> Prior_Pending_Proced_Date
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Prior_Pending_Proced_Date.Trimmed Column: $'''G''' Row: 2
+Text.ParseText.RegexParseForFirstOccurrence Text: Match TextToFind: $'''(?<=Retroactive Date:\\s).*''' StartingPosition: 0 IgnoreCase: False Match=> Retroactive_Date
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Retroactive_Date.Trimmed Column: $'''G''' Row: 3

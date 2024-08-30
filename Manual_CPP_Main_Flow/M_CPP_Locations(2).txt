@@ -1,0 +1,55 @@
+**REGION Process_Log_Region
+DateTime.GetCurrentDateTime.Local DateTimeFormat: DateTime.DateTimeFormat.DateAndTime CurrentDateTime=> CurrentDateTime2_PL
+Text.ConvertDateTimeToText.FromCustomDateTime DateTime: CurrentDateTime2_PL CustomFormat: $'''dd/MM/yyyy hh:mm:ss tt''' Result=> FormattedDateTime
+Text.ConvertDateTimeToText.FromCustomDateTime DateTime: CurrentDateTime2_PL CustomFormat: $'''dd/MM/yyyy''' Result=> CustomDate
+SET LogID TO LogIDS[2]
+SET Log_Type TO LogType[0]
+SET Item_Status TO ItemStatus[0]
+SET Subflow TO SubflowNames[1]
+SET Descrip TO $'''%Subflow% %In_Description[0]%'''
+SET ExceptionType TO $'''%''%'''
+CALL Global_Logs
+Text.Replace Text: CustomDate TextToFind: $'''/''' IsRegEx: False IgnoreCase: False ReplaceWith: $'''_''' ActivateEscapeSequences: False Result=> CustomDate
+SET Subflow TO SubflowNames[1]
+SET Descrip TO In_Description[0]
+SET ProcessLog TO $'''**********************************************************
+Policy: %Policy_Symbol%-%Policy_Number%-%Policy_Mod%
+Date And Time Flow Started: %FormattedDateTime%
+SubflowName: %Subflow%
+Description: %Subflow% %Descrip%'''
+File.WriteText File: $'''C:\\Users\\Jayesh Patil\\OneDrive - RABBIT AND TORTOISE TECHNOLOGY SOLUTIONS PRIVATE LIMITED\\Desktop\\Manual_CPP\\Manual_CPP_Logs\\Process Logs\\ProcesLog_%CustomDate%''' TextToWrite: ProcessLog AppendNewLine: True IfFileExists: File.IfFileExists.Append Encoding: File.FileEncoding.Unicode
+**ENDREGION
+Excel.SetActiveWorksheet.ActivateWorksheetByName Instance: ExcelInstance Name: $'''Locations'''
+Pdf.ExtractTextFromPDF.ExtractText PDFFile: File_Path DetectLayout: False ExtractedText=> ExtractedPDFText
+Text.ParseText.RegexParseForFirstOccurrence Text: ExtractedPDFText TextToFind: $'''(?<=Locations Of All The Premises You Own, Rent Or Occupy\\s).*(\\n.*)*(?=Forms Applicable To All Coverage Parts:)''' StartingPosition: 0 IgnoreCase: False Match=> Location_Add_Data
+Text.ParseText.RegexParse Text: Location_Add_Data TextToFind: $'''(?<=Location )\\d+''' StartingPosition: 0 IgnoreCase: False Matches=> Locations
+Text.ParseText.RegexParse Text: Location_Add_Data TextToFind: $'''(?<=Location\\s\\d+\\s).*(\\n?.*?)*?,\\s\\w+\\s\\d+''' StartingPosition: 0 IgnoreCase: False Matches=> Address
+Text.ParseText.RegexParse Text: Location_Add_Data TextToFind: $'''(?<=Location\\s\\d+\\s.*(\\n.*)*?, )\\w*(?= \\d{5}\\s?)''' StartingPosition: 0 IgnoreCase: False Matches=> States
+IF Contains(Locations, $'''Avenues Package Product''', True) THEN
+    Text.Replace Text: Locations TextToFind: $'''Avenues Package Product''' IsRegEx: False IgnoreCase: True ReplaceWith: $'''%''%''' ActivateEscapeSequences: False Result=> Locations
+END
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Locations Column: $'''A''' Row: 2
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Address Column: $'''B''' Row: 2
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: States Column: $'''C''' Row: 2
+Excel.ReadFromExcel.ReadAllCells Instance: ExcelInstance ReadAsText: False FirstLineIsHeader: True RangeValue=> ExcelData2
+Variables.RetrieveDataTableColumnIntoList DataTable: ExcelData2 ColumnNameOrIndex: 1 ColumnAsList=> ColumnAsList2
+SET RowIndex TO 2
+LOOP FOREACH CurrentItem4 IN ColumnAsList2
+    Text.Trim Text: CurrentItem4 TrimOption: Text.TrimOption.Both TrimmedText=> TrimmedText
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: TrimmedText Column: $'''B''' Row: RowIndex
+    SET RowIndex TO RowIndex + 1
+END
+**REGION Process_Log
+DateTime.GetCurrentDateTime.Local DateTimeFormat: DateTime.DateTimeFormat.DateAndTime CurrentDateTime=> CurrentDateTime2_PL
+Text.ConvertDateTimeToText.FromCustomDateTime DateTime: CurrentDateTime2_PL CustomFormat: $'''dd/MM/yyyy hh:mm:ss tt''' Result=> FormattedDateTime
+Text.ConvertDateTimeToText.FromCustomDateTime DateTime: CurrentDateTime2_PL CustomFormat: $'''dd/MM/yyyy''' Result=> CustomDate
+Text.Replace Text: CustomDate TextToFind: $'''/''' IsRegEx: False IgnoreCase: False ReplaceWith: $'''_''' ActivateEscapeSequences: False Result=> CustomDate
+SET Subflow TO SubflowNames[1]
+SET Descrip TO In_Description[1]
+SET ProcessLog TO $'''**********************************************************
+Policy: %Policy_Symbol%-%Policy_Number%-%Policy_Mod%
+Date And Time Flow Started: %FormattedDateTime%
+SubflowName: %Subflow%
+Description: %Subflow% %Descrip%'''
+File.WriteText File: $'''C:\\Users\\Jayesh Patil\\OneDrive - RABBIT AND TORTOISE TECHNOLOGY SOLUTIONS PRIVATE LIMITED\\Desktop\\Manual_CPP\\Manual_CPP_Logs\\Process Logs\\ProcesLog_%CustomDate%''' TextToWrite: ProcessLog AppendNewLine: True IfFileExists: File.IfFileExists.Append Encoding: File.FileEncoding.Unicode
+**ENDREGION

@@ -1,0 +1,19 @@
+Excel.SetActiveWorksheet.ActivateWorksheetByName Instance: ExcelInstance Name: $'''Forms of All Coverage'''
+Text.ParseText.RegexParseForFirstOccurrence Text: ExtractedPDFText TextToFind: $'''(?<=Forms Applicable To All Coverage Parts:(\\r\\n)).*(\\n.*)*(?=Proposed Policy Premiums)''' StartingPosition: 0 IgnoreCase: False OccurrencePosition=> Position Match=> Match
+Text.ParseText.RegexParse Text: Match TextToFind: $'''.*(?=\\s\\d+\\/\\d+).*(\\n.*)*?''' StartingPosition: 0 IgnoreCase: False Matches=> Code_List
+SET RowIndex TO 2
+LOOP FOREACH CurrentItem IN Code_list
+    Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''.*(?=\\s\\d+\\/\\d+)''' StartingPosition: 0 IgnoreCase: False Match=> Form_Number
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Form_Number.Trimmed Column: $'''A''' Row: RowIndex
+    Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''(?<=\\d+\\w+?\\s)\\d+\\/\\d+(?=\\s)''' StartingPosition: 0 IgnoreCase: False Match=> Edition_Date
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Edition_Date.Trimmed Column: $'''B''' Row: RowIndex
+    Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''(?<=\\s\\d+\\/\\d+\\s).*(\\n.*)*?''' StartingPosition: 0 IgnoreCase: False Match=> Description
+    IF Contains(Description, $'''Avenues Package Product''', True) THEN
+        Text.Replace Text: Description TextToFind: $'''Avenues Package Product''' IsRegEx: False IgnoreCase: True ReplaceWith: $'''%''%''' ActivateEscapeSequences: False Result=> Description
+    END
+    IF Contains(Description, $'''A Commercial Insurance Program''', True) THEN
+        Text.Replace Text: Description TextToFind: $'''A Commercial Insurance Program''' IsRegEx: False IgnoreCase: True ReplaceWith: $'''%''%''' ActivateEscapeSequences: False Result=> Description
+    END
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Description.Trimmed Column: $'''C''' Row: RowIndex
+    Variables.IncreaseVariable Value: RowIndex IncrementValue: 1
+END

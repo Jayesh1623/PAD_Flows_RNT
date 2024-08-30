@@ -1,0 +1,10 @@
+Database.Connect ConnectionString: $'''Provider=MSOLEDBSQL.1;Password=fda_dev_login;Persist Security Info=True;User ID=fda_dev_login;Initial Catalog=fda_dev;Data Source=rntdbinstance.cywt4ngax3hu.us-east-2.rds.amazonaws.com;Initial File Name=\"\";Use Encryption for Data=True;Trust Server Certificate=True;Server SPN=\"\";Authentication=\"\";Access Token=\"\"''' Connection=> SQLConnection
+Excel.ReadFromExcel.ReadAllCells Instance: ExcelInstance ReadAsText: False FirstLineIsHeader: True RangeValue=> Inspections_Data
+DateTime.GetCurrentDateTime.Local DateTimeFormat: DateTime.DateTimeFormat.DateAndTime CurrentDateTime=> CurrentDateTime
+SET Created_By TO $'''Jayesh_P'''
+SET establishment_id TO 1001
+LOOP FOREACH Inspection_Row IN Inspections_Data
+    Database.ExecuteSqlStatement.Execute Connection: SQLConnection Statement: $'''INSERT INTO Inspections ( establishment_id, city , state,  zip_code, inspection_end_date ,project_area , classification, created_by, created_date )
+VALUES (\'%establishment_id%\',\'%Inspection_Row[0]%\', \'%Inspection_Row[1]%\', \'%Inspection_Row[2]%\', \'%Inspection_Row[3]%]\', \'%Inspection_Row[4]%\', \'%Inspection_Row[5]%\', \'%Created_By%\', \'%CurrentDateTime%\');''' Timeout: 30 Result=> QueryResult
+END
+Database.Close Connection: SQLConnection

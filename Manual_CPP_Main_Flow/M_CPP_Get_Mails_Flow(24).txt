@@ -1,0 +1,6 @@
+**REGION Get_Mails
+SET Attachment_Path TO Email_Attachment_Path
+Outlook.Launch Instance=> OutlookInstance
+Outlook.RetrieveEmailMessages.RetrieveEmailsAndSaveAttachments Instance: OutlookInstance Account: $'''j.patil@rnt.ai''' MailFolder: $'''Inbox''' EmailsToRetrieve: Outlook.RetrieveMessagesMode.Unread MarkAsRead: False SubjectContains: $'''MANUAL CPP PROCESS''' SaveAttachmentsInto: Attachment_Path Messages=> RetrievedEmails
+Outlook.Close Instance: OutlookInstance
+**ENDREGION

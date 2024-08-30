@@ -1,0 +1,118 @@
+CALL Config_Values
+CALL Get_Mails_Flow
+SET SR_No TO 0
+LOOP FOREACH CurrentEmail IN RetrievedEmails
+    SET Policy_Mod TO $'''%''%'''
+    SET Policy_Number TO $'''%''%'''
+    SET Policy_Symbol TO $'''%''%'''
+    SET FinishTime TO $'''%''%'''
+    SET StartingTime TO $'''%''%'''
+    SET RunTime TO $'''%''%'''
+    SET EndTime_GL TO $'''%''%'''
+    SET Log_Type TO $'''%''%'''
+    SET Item_Status TO $'''%''%'''
+    SET Final_Status TO $'''%''%'''
+    SET QPP_Extraction TO $'''%''%'''
+    SET End_Time TO $'''%''%'''
+    SET Business_Exception TO $'''%''%'''
+    Variables.IncreaseVariable Value: SR_No IncrementValue: 1
+    SET CC TO CurrentEmail.Cc
+    Text.Replace Text: CC TextToFind: $'''\\r?\\n''' IsRegEx: True IgnoreCase: False ReplaceWith: $''';''' ActivateEscapeSequences: False Result=> CC
+    CALL Email_Extraction
+    SET Email_Read TO $'''Completed'''
+    **REGION Process_Log_Region
+    SET LogID TO LogIDS[1]
+    SET Log_Type TO LogType[0]
+    SET Item_Status TO ItemStatus[0]
+    SET Subflow TO SubflowNames[0]
+    SET Descrip TO $'''%Subflow% %In_Description[0]%'''
+    SET ExceptionType TO $'''%''%'''
+    DateTime.GetCurrentDateTime.Local DateTimeFormat: DateTime.DateTimeFormat.DateAndTime CurrentDateTime=> CurrentDateTime2_PL
+    Text.ConvertDateTimeToText.FromCustomDateTime DateTime: CurrentDateTime2_PL CustomFormat: $'''dd/MM/yyyy hh:mm:ss tt''' Result=> FormattedDateTime
+    Text.ConvertDateTimeToText.FromCustomDateTime DateTime: CurrentDateTime2_PL CustomFormat: $'''hh:mm:ss tt''' Result=> StartingTime
+    SET StrartTime_GL TO FormattedDateTime
+    DISABLE SET StartingTime TO StrartTime_GL
+    Text.ConvertDateTimeToText.FromCustomDateTime DateTime: CurrentDateTime2_PL CustomFormat: $'''dd/MM/yyyy''' Result=> CustomDate
+    Text.Replace Text: CustomDate TextToFind: $'''/''' IsRegEx: False IgnoreCase: False ReplaceWith: $'''_''' ActivateEscapeSequences: False Result=> CustomDate
+    CALL Global_Logs
+    SET StrartTime_GL TO $'''%''%'''
+    SET Subflow TO SubflowNames[0]
+    SET Descrip TO In_Description[0]
+    SET ProcessLog TO $'''**********************************************************
+Policy: %Policy_Symbol%-%Policy_Number%-%Policy_Mod%
+Date And Time Flow Started: %FormattedDateTime%
+SubflowName: %Subflow%
+Description: %Subflow%_%Descrip%'''
+    File.WriteText File: $'''C:\\Users\\Jayesh Patil\\OneDrive - RABBIT AND TORTOISE TECHNOLOGY SOLUTIONS PRIVATE LIMITED\\Desktop\\Manual_CPP\\Manual_CPP_Logs\\Process Logs\\ProcesLog_%CustomDate%''' TextToWrite: ProcessLog AppendNewLine: True IfFileExists: File.IfFileExists.Append Encoding: File.FileEncoding.Unicode
+    **ENDREGION
+    Text.ParseText.RegexParseForFirstOccurrence Text: Email_Attachment TextToFind: $'''(?<=Not_Processed\\W).*.pdf''' StartingPosition: 0 IgnoreCase: False Match=> File_Name
+    SET File_Path TO $'''%FilePath%\\%File_Name.Trimmed%'''
+    IF (File.IfFile.Exists File: File_Path) THEN
+        Excel.LaunchExcel.LaunchAndOpenUnderExistingProcess Path: Input_Template Visible: True ReadOnly: False Instance=> ExcelInstance
+        LOOP FOREACH CurrentFormNo IN Form_Nos
+            BLOCK 
+ON BLOCK ERROR
+    SET System_Error TO $'''True'''
+    SET Exception TO $'''True'''
+    CALL SendMail_Flow
+    SET Final_Status TO $'''System Exception'''
+    GOTO Label_Error
+END
+                SWITCH CurrentFormNo
+                    CASE Contains($'''401-0151''', False)
+                        CALL Locations
+                        CALL Forms_Of_All_Coverage
+                        CALL Premium_Values
+                    CASE Contains($'''411-0542''', False)
+                        CALL Forms_Of_Property_Coverage
+                        CALL Coverages
+                    CASE Contains($'''411-0771''', False)
+                        CALL Broadform_Water_Damage
+                    CASE Contains($'''411-0773''', False)
+                        CALL Earth_Movement
+                    CASE Contains($'''411-0775''', False)
+                        CALL FLOOD
+                    CASE Contains($'''411-0777''', False)
+                        CALL Earthquake_Sprinkler
+                    CASE Contains($'''421-0340''', False)
+                        CALL 'Forms_of_Genera_ Ability_Coverage'
+                    CASE Contains($'''421-0341''', False)
+                        CALL 'General Liability'
+                    CASE Contains($'''850-0002''', False)
+                        CALL Cyber_Liability
+                    CASE Contains($'''441-0205''', False)
+                        CALL 'Inland Marine'
+                    CASE Contains($'''431-0026''', False)
+                        CALL 'Crime Coverage'
+                END
+            END
+        END
+        CALL End_Process
+    END
+    **REGION Process_Log_Region
+    DateTime.GetCurrentDateTime.Local DateTimeFormat: DateTime.DateTimeFormat.DateAndTime CurrentDateTime=> CurrentDateTime2_PL
+    Text.ConvertDateTimeToText.FromCustomDateTime DateTime: CurrentDateTime2_PL CustomFormat: $'''dd/MM/yyyy hh:mm:ss tt''' Result=> FormattedDateTime
+    Text.ConvertDateTimeToText.FromCustomDateTime DateTime: CurrentDateTime2_PL CustomFormat: $'''hh:mm:ss tt''' Result=> FinishTime
+    SET EndTime_GL TO FormattedDateTime
+    DISABLE SET FinishTime TO EndTime_GL
+    Text.ConvertDateTimeToText.FromCustomDateTime DateTime: CurrentDateTime2_PL CustomFormat: $'''dd/MM/yyyy''' Result=> CustomDate
+    Text.Replace Text: CustomDate TextToFind: $'''/''' IsRegEx: False IgnoreCase: False ReplaceWith: $'''_''' ActivateEscapeSequences: False Result=> CustomDate
+    SET Subflow TO SubflowNames[0]
+    SET LogID TO LogIDS[0]
+    SET Log_Type TO LogType[0]
+    SET Item_Status TO ItemStatus[0]
+    SET Descrip TO $'''%Subflow% %In_Description[1]%'''
+    SET ExceptionType TO $'''%''%'''
+    CALL Global_Logs
+    SET Descrip TO In_Description[1]
+    SET ProcessLog TO $'''**********************************************************
+Policy: %Policy_Symbol%-%Policy_Number%-%Policy_Mod%
+Date And Time Flow Started: %FormattedDateTime%
+SubflowName: %Subflow%
+Description: %Subflow%_%Descrip%'''
+    File.WriteText File: $'''C:\\Users\\Jayesh Patil\\OneDrive - RABBIT AND TORTOISE TECHNOLOGY SOLUTIONS PRIVATE LIMITED\\Desktop\\Manual_CPP\\Manual_CPP_Logs\\Process Logs\\ProcesLog_%CustomDate%''' TextToWrite: ProcessLog AppendNewLine: True IfFileExists: File.IfFileExists.Append Encoding: File.FileEncoding.Unicode
+    **ENDREGION
+    LABEL Label_Error
+END
+Text.Replace Text: Date TextToFind: $'''/''' IsRegEx: False IgnoreCase: False ReplaceWith: $'''_''' ActivateEscapeSequences: False Result=> Date
+Excel.CloseExcel.CloseAndSaveAs Instance: ExcelInstance_Summary DocumentFormat: Excel.ExcelFormat.FromExtension DocumentPath: $'''%DayEndSummaryOutputTemplate%\\Day_End_Summary_%Date%'''

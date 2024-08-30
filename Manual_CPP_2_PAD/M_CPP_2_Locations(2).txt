@@ -1,0 +1,20 @@
+Excel.SetActiveWorksheet.ActivateWorksheetByName Instance: ExcelInstance Name: $'''Locations'''
+Pdf.ExtractTextFromPDF.ExtractText PDFFile: Currentpdffile DetectLayout: False ExtractedText=> ExtractedPDFText
+Text.ParseText.RegexParseForFirstOccurrence Text: ExtractedPDFText TextToFind: $'''(?<=Locations Of All The Premises You Own, Rent Or Occupy\\s).*(\\n.*)*(?=Forms Applicable To All Coverage Parts:)''' StartingPosition: 0 IgnoreCase: False Match=> Location_Add_Data
+Text.ParseText.RegexParse Text: Location_Add_Data TextToFind: $'''(?<=Location )\\d+''' StartingPosition: 0 IgnoreCase: False Matches=> Locations
+Text.ParseText.RegexParse Text: Location_Add_Data TextToFind: $'''(?<=Location\\s\\d+\\s).*(\\n?.*?)*?,\\s\\w+\\s\\d+''' StartingPosition: 0 IgnoreCase: False Matches=> Address
+Text.ParseText.RegexParse Text: Location_Add_Data TextToFind: $'''(?<=Location\\s\\d+\\s.*(\\n.*)*?, )\\w*(?= \\d{5}\\s?)''' StartingPosition: 0 IgnoreCase: False Matches=> States
+IF Contains(Locations, $'''Avenues Package Product''', True) THEN
+    Text.Replace Text: Locations TextToFind: $'''Avenues Package Product''' IsRegEx: False IgnoreCase: True ReplaceWith: $'''%''%''' ActivateEscapeSequences: False Result=> Locations
+END
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Locations Column: $'''A''' Row: 2
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Address Column: $'''B''' Row: 2
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: States Column: $'''C''' Row: 2
+Excel.ReadFromExcel.ReadAllCells Instance: ExcelInstance ReadAsText: False FirstLineIsHeader: True RangeValue=> ExcelData2
+Variables.RetrieveDataTableColumnIntoList DataTable: ExcelData2 ColumnNameOrIndex: 1 ColumnAsList=> ColumnAsList2
+SET RowIndex TO 2
+LOOP FOREACH CurrentItem4 IN ColumnAsList2
+    Text.Trim Text: CurrentItem4 TrimOption: Text.TrimOption.Both TrimmedText=> TrimmedText
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: TrimmedText Column: $'''B''' Row: RowIndex
+    SET RowIndex TO RowIndex + 1
+END

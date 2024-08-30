@@ -1,0 +1,62 @@
+**REGION Process_Log_Region
+DateTime.GetCurrentDateTime.Local DateTimeFormat: DateTime.DateTimeFormat.DateAndTime CurrentDateTime=> CurrentDateTime2_PL
+Text.ConvertDateTimeToText.FromCustomDateTime DateTime: CurrentDateTime2_PL CustomFormat: $'''dd/MM/yyyy hh:mm:ss tt''' Result=> FormattedDateTime
+Text.ConvertDateTimeToText.FromCustomDateTime DateTime: CurrentDateTime2_PL CustomFormat: $'''dd/MM/yyyy''' Result=> CustomDate
+SET LogID TO LogIDS[17]
+SET Log_Type TO LogType[0]
+SET Item_Status TO ItemStatus[0]
+SET Subflow TO SubflowNames[21]
+Text.Replace Text: ABC TextToFind: $'''\\s''' IsRegEx: True IgnoreCase: False ReplaceWith: $''':''' ActivateEscapeSequences: False Result=> ABC
+IF IsNotEmpty(Business_Exception) THEN
+    SET Descrip TO $'''For the form %ABC% the bot did not find any data in attached QPP.'''
+    SET ExceptionType TO ExceptionTypes[1]
+    SET Item_Status TO ItemStatus[1]
+    SET Log_Type TO LogType[1]
+ELSE
+    SET Descrip TO $'''%SubflowNames[21]% %In_Description[1]%'''
+    SET ExceptionType TO $'''%''%'''
+    SET Item_Status TO ItemStatus[0]
+    SET Log_Type TO LogType[0]
+END
+CALL Global_Logs
+Text.Replace Text: CustomDate TextToFind: $'''/''' IsRegEx: False IgnoreCase: False ReplaceWith: $'''_''' ActivateEscapeSequences: False Result=> CustomDate
+SET Subflow TO SubflowNames[21]
+SET Descrip TO In_Description[0]
+SET ProcessLog TO $'''**********************************************************
+Policy: %Policy_Symbol%-%Policy_Number%-%Policy_Mod%
+Date And Time Flow Started: %FormattedDateTime%
+SubflowName: %Subflow%
+Description: %Subflow% %Descrip%'''
+File.WriteText File: $'''C:\\Users\\Jayesh Patil\\OneDrive - RABBIT AND TORTOISE TECHNOLOGY SOLUTIONS PRIVATE LIMITED\\Desktop\\Manual_CPP\\Manual_CPP_Logs\\Process Logs\\ProcesLog_%CustomDate%''' TextToWrite: ProcessLog AppendNewLine: True IfFileExists: File.IfFileExists.Append Encoding: File.FileEncoding.Unicode
+SET ABC TO $'''%''%'''
+**ENDREGION
+Text.Replace Text: Date TextToFind: $'''/''' IsRegEx: False IgnoreCase: False ReplaceWith: $'''_''' ActivateEscapeSequences: False Result=> Date
+IF (File.IfFile.Exists File: $'''%DayEndSummaryOutputTemplate%\\Day_End_Summary_%Date%.xlsx''') THEN
+    Excel.LaunchExcel.LaunchAndOpenUnderExistingProcess Path: $'''%DayEndSummaryOutputTemplate%\\Day_End_Summary_%Date%.xlsx''' Visible: True ReadOnly: False Instance=> ExcelInstance_Summary
+    Text.Replace Text: Date TextToFind: $'''_''' IsRegEx: False IgnoreCase: False ReplaceWith: $'''/''' ActivateEscapeSequences: False Result=> Date
+    Excel.GetFirstFreeColumnRow Instance: ExcelInstance_Summary FirstFreeRow=> FirstFreeRow_Summary
+    SET SR_No TO FirstFreeRow_Summary - 1
+    Variables.CreateNewDatatable InputTable: { ^['Sr : No', 'Date', 'Policy Number', 'Start Time', 'End Time', 'Email Read', 'QPP Extraction', 'PCS Status', 'Final Status', 'No of Forms Filled', 'Errors', 'Reasons'], [SR_No, Date, $'''%Policy_Symbol%-%Policy_Number%-%Policy_Mod%''', Start_Time, End_Time, Email_Read, QPP_Extraction, $'''''', Final_Status, $'''''', System_Exception, Business_Exception] } DataTable=> Summary_Table
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance_Summary Value: Summary_Table Column: $'''A''' Row: FirstFreeRow_Summary
+ELSE
+    Text.Replace Text: Date TextToFind: $'''_''' IsRegEx: False IgnoreCase: False ReplaceWith: $'''/''' ActivateEscapeSequences: False Result=> Date
+    Variables.CreateNewDatatable InputTable: { ^['Sr : No', 'Date', 'Policy Number', 'Start Time', 'End Time', 'Email Read', 'QPP Extraction', 'PCS Status', 'Final Status', 'No of Forms Filled', 'Errors', 'Reasons'], [SR_No, Date, $'''%Policy_Symbol%-%Policy_Number%-%Policy_Mod%''', Start_Time, End_Time, Email_Read, QPP_Extraction, $'''''', Final_Status, $'''''', System_Exception, Business_Exception] } DataTable=> Summary_Table
+    Excel.LaunchExcel.LaunchAndOpenUnderExistingProcess Path: DayEndSummaryInputTemplate Visible: True ReadOnly: False Instance=> ExcelInstance_Summary
+    Excel.GetFirstFreeColumnRow Instance: ExcelInstance_Summary FirstFreeRow=> FirstFreeRow_Summary
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance_Summary Value: Summary_Table Column: $'''A''' Row: FirstFreeRow_Summary
+    DISABLE Excel.CloseExcel.CloseAndSave Instance: ExcelInstance_Summary
+END
+**REGION Process_Log
+DateTime.GetCurrentDateTime.Local DateTimeFormat: DateTime.DateTimeFormat.DateAndTime CurrentDateTime=> CurrentDateTime2_PL
+Text.ConvertDateTimeToText.FromCustomDateTime DateTime: CurrentDateTime2_PL CustomFormat: $'''dd/MM/yyyy hh:mm:ss tt''' Result=> FormattedDateTime
+Text.ConvertDateTimeToText.FromCustomDateTime DateTime: CurrentDateTime2_PL CustomFormat: $'''dd/MM/yyyy''' Result=> CustomDate
+Text.Replace Text: CustomDate TextToFind: $'''/''' IsRegEx: False IgnoreCase: False ReplaceWith: $'''_''' ActivateEscapeSequences: False Result=> CustomDate
+SET Subflow TO SubflowNames[21]
+SET Descrip TO In_Description[1]
+SET ProcessLog TO $'''**********************************************************
+Policy: %Policy_Symbol%-%Policy_Number%-%Policy_Mod%
+Date And Time Flow Started: %FormattedDateTime%
+SubflowName: %Subflow%
+Description: %Subflow% %Descrip%'''
+File.WriteText File: $'''C:\\Users\\Jayesh Patil\\OneDrive - RABBIT AND TORTOISE TECHNOLOGY SOLUTIONS PRIVATE LIMITED\\Desktop\\Manual_CPP\\Manual_CPP_Logs\\Process Logs\\ProcesLog_%CustomDate%''' TextToWrite: ProcessLog AppendNewLine: True IfFileExists: File.IfFileExists.Append Encoding: File.FileEncoding.Unicode
+**ENDREGION

@@ -1,0 +1,109 @@
+**REGION Process_Log_Region
+DateTime.GetCurrentDateTime.Local DateTimeFormat: DateTime.DateTimeFormat.DateAndTime CurrentDateTime=> CurrentDateTime2_PL
+Text.ConvertDateTimeToText.FromCustomDateTime DateTime: CurrentDateTime2_PL CustomFormat: $'''dd/MM/yyyy hh:mm:ss tt''' Result=> FormattedDateTime
+Text.ConvertDateTimeToText.FromCustomDateTime DateTime: CurrentDateTime2_PL CustomFormat: $'''dd/MM/yyyy''' Result=> CustomDate
+SET LogID TO LogIDS[15]
+SET Log_Type TO LogType[0]
+SET Item_Status TO ItemStatus[0]
+SET Subflow TO SubflowNames[19]
+SET ExceptionType TO $'''%''%'''
+DISABLE CALL Global_Logs
+Text.Replace Text: CustomDate TextToFind: $'''/''' IsRegEx: False IgnoreCase: False ReplaceWith: $'''_''' ActivateEscapeSequences: False Result=> CustomDate
+DISABLE SET Subflow TO SubflowNames[19]
+SET Descrip TO In_Description[0]
+SET ProcessLog TO $'''**********************************************************
+Policy: %Policy_Symbol%-%Policy_Number%-%Policy_Mod%
+Date And Time Flow Started: %FormattedDateTime%
+SubflowName: %Subflow%
+Description: %Subflow% %Descrip%'''
+File.WriteText File: $'''C:\\Users\\Jayesh Patil\\OneDrive - RABBIT AND TORTOISE TECHNOLOGY SOLUTIONS PRIVATE LIMITED\\Desktop\\Manual_CPP\\Manual_CPP_Logs\\Process Logs\\ProcesLog_%CustomDate%''' TextToWrite: ProcessLog AppendNewLine: True IfFileExists: File.IfFileExists.Append Encoding: File.FileEncoding.Unicode
+SET Descrip TO $'''%Subflow% %In_Description[0]%'''
+**ENDREGION
+BLOCK 
+ON BLOCK ERROR
+    SET System_Error TO $'''True'''
+    SET Exception TO $'''True'''
+    CALL SendMail_Flow
+END
+    Excel.SetActiveWorksheet.ActivateWorksheetByName Instance: ExcelInstance Name: $'''Earthquake Sprinkler'''
+    Pdf.ExtractTextFromPDF.ExtractText PDFFile: File_Path DetectLayout: True ExtractedText=> StructuredPDFText
+    Text.ParseText.RegexParseForFirstOccurrence Text: StructuredPDFText TextToFind: $'''(?<=EARTHQUAKE SPRINKLER LEAKAGE PROPOSED COVERAGE\\s).*(\\n.*)*(?=Total Earthquake Sprinkler Leakage Premium).*(\\n.*?)*?(?=Page).*''' StartingPosition: 0 IgnoreCase: False Match=> Match
+    IF IsEmpty(Match) THEN
+        SET ExceptionType TO $'''Business Exception'''
+        SET Item_Status TO ItemStatus[1]
+        SET Log_Type TO LogType[1]
+        DISABLE SET Business_Exception TO $'''%Business_Exception%_Form No %CurrentFormNo% data is not present for the Policy No %Policy_Number%.'''
+        SET Business_Exception TO $'''%Business_Exception% %CurrentFormNo%'''
+        SET Final_Status TO $'''Business Exception'''
+        SET Descrip TO $'''%Error_Description[7]% %CurrentFormNo% %Error_Description[8]% %Policy_Number%.'''
+        DISABLE SET Descrip TO CurrentFormNo
+        SET Subflow TO SubflowNames[19]
+        DISABLE CALL Global_Logs
+        CALL Error_Logs
+        GOTO Label_End
+    END
+    CALL Global_Logs
+    Text.ParseText.RegexParse Text: Match TextToFind: $'''(?<=Page\\s)\\d+''' StartingPosition: 0 IgnoreCase: False Matches=> Pages
+    SET Free_Column TO 1
+    SET Column TO Free_Column
+    SET A TO 4
+    LOOP FOREACH CurrentPage IN Pages
+        Pdf.ExtractTablesFromPDF.ExtractTablesFromPage PDFFile: File_Path PageNumber: CurrentPage MultiPageTables: True SetFirstRowAsHeader: False ExtractedPDFTables=> ExtractedPDFTables
+        LOOP FOREACH CurrentITable IN ExtractedPDFTables
+            IF CurrentITable.DataTable.RowsCount < 3 THEN
+                Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: CurrentITable.DataTable Column: Column Row: 1
+                SET Column TO Column + A
+            ELSE
+                Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''Location No.''' Column: Column Row: 5
+                Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''Building No.''' Column: Column + 1 Row: 5
+                Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''Building Address''' Column: Column + 2 Row: 5
+                Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''Building Deductible''' Column: Column + 3 Row: 5
+                Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''Personal Property Deductible''' Column: Column + 4 Row: 5
+                LOOP LoopIndex FROM 0 TO CurrentITable.DataTable.RowsCount - 1 STEP 1
+                    SET Building_Address TO $'''%''%'''
+                    Text.ParseText.RegexParseForFirstOccurrence Text: CurrentITable.DataTable TextToFind: $'''[A-z]*(?=\\sEARTHQUAKE)\\sEARTHQUAKE SPRINKLER LEAKAGE''' StartingPosition: 0 IgnoreCase: False Match=> Flood_Match
+                    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Flood_Match Column: Column Row: 1
+                    Text.ParseText.RegexParseForFirstOccurrence Text: CurrentITable.DataTable TextToFind: $'''(?<=Per “Occurrence” - Limit Of Insurance,.*)\\$.*''' StartingPosition: 0 IgnoreCase: False Match=> PER_Occ
+                    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''Per “Occurrence” - Limit Of Insurance''' Column: Column Row: 2
+                    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: PER_Occ Column: Column + 1 Row: 2
+                    Text.ParseText.RegexParseForFirstOccurrence Text: CurrentITable.DataTable TextToFind: $'''(?<=Annual Aggregate - Limit Of Insurance,.*)\\$.*''' StartingPosition: 0 IgnoreCase: False Match=> Ann_Agg
+                    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''Annual Aggregate - Limit Of Insurance''' Column: Column Row: 3
+                    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Ann_Agg Column: Column + 1 Row: 3
+                    Text.ParseText.RegexParseForFirstOccurrence Text: CurrentITable.DataTable TextToFind: $'''(?<=Premium,.*)\\$.*''' StartingPosition: 0 IgnoreCase: False Match=> Flood_Premium
+                    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''Premium''' Column: Column Row: 4
+                    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Flood_Premium Column: Column + 1 Row: 4
+                    IF LoopIndex >= 7 THEN
+                        LOOP Colmn_Index FROM 2 TO CurrentITable.DataTable.Columns.Count - 3 STEP 1
+                            SET Building_Address TO $'''%Building_Address% %CurrentITable.DataTable[LoopIndex][Colmn_Index]%'''
+                            Text.Trim Text: Building_Address TrimOption: Text.TrimOption.Both TrimmedText=> Building_Address
+                        END
+                        Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: CurrentITable.DataTable[LoopIndex][0] Column: Column Row: LoopIndex - 1
+                        Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: CurrentITable.DataTable[LoopIndex][1] Column: Column + 1 Row: LoopIndex - 1
+                        Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Building_Address Column: Column + 2 Row: LoopIndex - 1
+                        Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: CurrentITable.DataTable[LoopIndex][CurrentITable.DataTable.Columns.Count - 2] Column: Column + 3 Row: LoopIndex - 1
+                        Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: CurrentITable.DataTable[LoopIndex][CurrentITable.DataTable.Columns.Count - 1] Column: Column + 4 Row: LoopIndex - 1
+                    END
+                END
+            END
+            Excel.GetFirstFreeColumnRow Instance: ExcelInstance FirstFreeColumn=> FirstFreeColumn_On_Flood
+            SET Column TO FirstFreeColumn_On_Flood + 2
+        END
+        Excel.GetFirstFreeColumnRow Instance: ExcelInstance FirstFreeColumn=> FirstFreeColumn_On_Flood
+        SET Column TO FirstFreeColumn_On_Flood + 2
+    END
+END
+**REGION Process_Log
+DateTime.GetCurrentDateTime.Local DateTimeFormat: DateTime.DateTimeFormat.DateAndTime CurrentDateTime=> CurrentDateTime2_PL
+Text.ConvertDateTimeToText.FromCustomDateTime DateTime: CurrentDateTime2_PL CustomFormat: $'''dd/MM/yyyy hh:mm:ss tt''' Result=> FormattedDateTime
+Text.ConvertDateTimeToText.FromCustomDateTime DateTime: CurrentDateTime2_PL CustomFormat: $'''dd/MM/yyyy''' Result=> CustomDate
+Text.Replace Text: CustomDate TextToFind: $'''/''' IsRegEx: False IgnoreCase: False ReplaceWith: $'''_''' ActivateEscapeSequences: False Result=> CustomDate
+SET Subflow TO SubflowNames[18]
+SET Descrip TO In_Description[1]
+SET ProcessLog TO $'''**********************************************************
+Policy: %Policy_Symbol%-%Policy_Number%-%Policy_Mod%
+Date And Time Flow Started: %FormattedDateTime%
+SubflowName: %Subflow%
+Description: %Subflow% %Descrip%'''
+File.WriteText File: $'''C:\\Users\\Jayesh Patil\\OneDrive - RABBIT AND TORTOISE TECHNOLOGY SOLUTIONS PRIVATE LIMITED\\Desktop\\Manual_CPP\\Manual_CPP_Logs\\Process Logs\\ProcesLog_%CustomDate%''' TextToWrite: ProcessLog AppendNewLine: True IfFileExists: File.IfFileExists.Append Encoding: File.FileEncoding.Unicode
+**ENDREGION
+LABEL Label_End

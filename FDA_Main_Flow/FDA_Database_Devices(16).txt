@@ -1,0 +1,8 @@
+Database.Connect ConnectionString: $'''Provider=MSOLEDBSQL.1;Password=fda_dev_login;Persist Security Info=True;User ID=fda_dev_login;Initial Catalog=fda_dev;Data Source=rntdbinstance.cywt4ngax3hu.us-east-2.rds.amazonaws.com;Initial File Name=\"\";Use Encryption for Data=True;Trust Server Certificate=True;Server SPN=\"\";Authentication=\"\";Access Token=\"\"''' Connection=> SQLConnection
+DateTime.GetCurrentDateTime.Local DateTimeFormat: DateTime.DateTimeFormat.DateAndTime CurrentDateTime=> CurrentDateTime
+SET Created_By TO 1623
+SET establishment_id TO 1001
+Database.ExecuteSqlStatement.Execute Connection: SQLConnection Statement: $'''INSERT INTO Device (establishment_id, device_name, product_code, device_class, regulation_Number, premkt_submission_no, establishment_operations, recalls_count, tplc_device_problem_1, tplc_device_problem_2, tplc_device_problem_3, tplc_device_problem_4, tplc_device_problem_5,
+mdr_device_problem_1, mdr_device_problem_2, mdr_device_problem_3, mdr_device_problem_4, mdr_device_problem_5, created_by, created_date)
+VALUES (\'%establishment_id%\', \'%Device_Name%\', \'%Product_Code%\', \'%Device_Class%\', \'%Regulation_No%\', \'%Premarket_Submission_No%\', \'%Establishment_Operations%\', \'%CDRH_Recalls%\', \'%Device_Problems[0][0]%\', \'%Device_Problems[1][0]%\', \'%Device_Problems[2][0]%\', \'%Device_Problems[3][0]%\', \'%Device_Problems[4][0]%\', \'%Device_Problems[0][1]%\', \'%Device_Problems[1][1]%\', \'%Device_Problems[2][1]%\', \'%Device_Problems[3][1]%\', \'%Device_Problems[4][1]%\', \'%Created_By%\', \'%CurrentDateTime%\');''' Timeout: 30
+Database.Close Connection: SQLConnection

@@ -1,0 +1,10 @@
+SET Total_No_Of_Devices TO $'''-'''
+SET Class3_Devices TO $'''-'''
+SET No_Of_Inspections TO $'''-'''
+SET CDRH_Recalls TO $'''-'''
+SET Response_Letter TO $'''N/A'''
+SET Adverse_Event_Count TO $'''-'''
+SET Is_This_Adverse_Event_Report_Maude TO $'''-'''
+Excel.SetActiveWorksheet.ActivateWorksheetByName Instance: ExcelInstance Name: $'''Devices'''
+Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''No Devices Available''' Column: $'''A''' Row: 2
+CALL Close_All_Applications

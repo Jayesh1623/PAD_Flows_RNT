@@ -1,0 +1,15 @@
+Outlook.Launch Instance=> OutlookInstance
+Outlook.RetrieveEmailMessages.RetrieveEmails Instance: OutlookInstance Account: $'''j.patil@rnt.ai''' MailFolder: $'''Inbox''' EmailsToRetrieve: Outlook.RetrieveMessagesMode.All MarkAsRead: True SubjectContains: $'''!!!...Happy Birthday...!!!''' Messages=> RetrievedEmails
+SET MailCount TO 0
+BLOCK 
+ON BLOCK ERROR
+    THROW ERROR
+END
+    LOOP FOREACH CurrentItem IN RetrievedEmails
+        DISABLE Outlook.SaveOutlookEmailMessages.SaveEmails Instance: OutlookInstance Account: $'''j.patil@rnt.ai''' EmailsToSave: CurrentItem SaveFormat: Outlook.MessageType.OutlookMessageFormatUnicode SaveEmailsTo: $'''C:\\Users\\Jayesh Patil\\OneDrive - RABBIT AND TORTOISE TECHNOLOGY SOLUTIONS PRIVATE LIMITED\\Desktop\\Emails''' MessagesFiles=> StoredMessagesFiles
+        Outlook.ProcessEmailMessages.DeleteEmails Instance: OutlookInstance Account: $'''j.patil@rnt.ai''' EmailsToProcess: CurrentItem
+        SET MailCount TO MailCount + 1
+        SET Total_Mails TO RetrievedEmails.Count
+    END
+END
+Outlook.Close Instance: OutlookInstance

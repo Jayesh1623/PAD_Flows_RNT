@@ -1,0 +1,34 @@
+Excel.SetActiveWorksheet.ActivateWorksheetByName Instance: ExcelInstance Name: $'''General Liability'''
+DISABLE Pdf.ExtractTextFromPDF.ExtractText PDFFile: $'''C:\\Users\\Jayesh Patil\\Desktop\\JP1623\\Manual CPP PDF and Excel\\Milhaus Developement LLC (2).pdf''' DetectLayout: False ExtractedText=> ExtractedPDFText
+Text.ParseText.Parse Text: ExtractedPDFText TextToFind: $'''(?<=RATE\\sPREMIUM).*(\\n?.*?)*?(?=Miscellaneous/Optional General Liability Coverages)''' StartingPosition: 0 IgnoreCase: False
+DISABLE Display.ShowMessageDialog.ShowMessage Message: DATA Icon: Display.Icon.None Buttons: Display.Buttons.OK DefaultButton: Display.DefaultButton.Button1 IsTopMost: False ButtonPressed=> ButtonPressed3
+Text.ParseText.RegexParse Text: DATA TextToFind: $'''\\d+.*(\\n.*)*?(?=\\s\\d+\\s\\w+\\/)|\\d+.*(\\n.*)*''' StartingPosition: 0 IgnoreCase: False Matches=> DATA
+LOOP FOREACH CurrentItem IN DATA
+    Excel.GetFirstFreeColumnRow Instance: ExcelInstance FirstFreeColumn=> FirstFreeColumn FirstFreeRow=> FirstFreeRow
+    Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''\\d+(?=\\s\\w{2}\\/)''' StartingPosition: 0 IgnoreCase: False Match=> Location
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Location Column: $'''A''' Row: FirstFreeRow
+    Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''(?<=\\d+\\s)[A-Z]*/\\d+''' StartingPosition: 0 IgnoreCase: False Match=> State
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: State Column: $'''B''' Row: FirstFreeRow
+    Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''(?<=\\d+\\s[A-Z]{2}/\\d{3}\\s)\\d{5}''' StartingPosition: 0 IgnoreCase: False Match=> Code
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Code Column: $'''C''' Row: FirstFreeRow
+    Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''(?<=\\d+\\s[A-Z]{2}\\/\\d{3}\\s\\d{5}\\s)\\d+''' StartingPosition: 0 IgnoreCase: False Match=> Subline
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Subline Column: $'''D''' Row: FirstFreeRow
+    Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''(?<=\\d+\\s[A-Z]{2}\\/\\d{3}\\s\\d{5}\\s\\d*\\s)\\$?\\d*,?\\d+,?\\d*''' StartingPosition: 0 IgnoreCase: False Match=> Premium_Basis
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Premium_Basis Column: $'''E''' Row: FirstFreeRow
+    Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''\\d+\\sof\\sTotal\\sArea(?=\\s\\w+\\s\\d+[.])|\\d+,\\d+(?=\\s\\w+\\s\\d+[.])|\\w+(?=\\s\\w+\\s[.])''' StartingPosition: 0 IgnoreCase: False Match=> Per
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Per Column: $'''F''' Row: FirstFreeRow
+    Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''\\w+(?=\\s\\d+[.])|\\w+(?=\\s[.]\\d+)''' StartingPosition: 0 IgnoreCase: False Match=> Ded
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Ded Column: $'''G''' Row: FirstFreeRow
+    Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''\\d+[.]\\d+(?=\\s\\$\\d+)|[.]\\d+(?=\\s\\$\\d+)''' StartingPosition: 0 IgnoreCase: False Match=> Rate
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Rate Column: $'''H''' Row: FirstFreeRow
+    Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''(?<=\\d+[.]\\d+\\s).*|(?<=[.]\\d+\\s).*''' StartingPosition: 0 IgnoreCase: False Match=> Premium
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Premium Column: $'''I''' Row: FirstFreeRow
+    IF Contains(CurrentItem, $'''Avenues Package Product''', True) THEN
+        Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''.*(\\n.*)*(?=Avenues Package Product)''' StartingPosition: 0 IgnoreCase: False Match=> CurrentItem
+    END
+    Text.ParseText.RegexParse Text: CurrentItem TextToFind: $'''\\r?\\n\\s+[A-z].*(\\n.*)*''' StartingPosition: 0 IgnoreCase: False Matches=> Code_List
+    Text.Trim Text: Code_List TrimOption: Text.TrimOption.Both TrimmedText=> Code_List
+    Text.SplitText.Split Text: Code_List StandardDelimiter: Text.StandardDelimiter.NewLine DelimiterTimes: 1 Result=> TextList
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: TextList Column: $'''A''' Row: FirstFreeRow + 1
+END
+CALL General_Liability2

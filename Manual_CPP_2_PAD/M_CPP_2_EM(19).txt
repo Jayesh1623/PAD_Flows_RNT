@@ -1,0 +1,12 @@
+LOOP LoopIndex_A FROM 0 TO CurrentITable.DataTable.RowsCount - 1 STEP 1
+    Excel.GetFirstFreeColumnRow Instance: ExcelInstance FirstFreeColumn=> FirstFreeColumn_Merge FirstFreeRow=> FirstFreeRow_Merge
+    SET Building_Address TO $'''%''%'''
+    LOOP Colmn_Index2 FROM 2 TO CurrentITable.DataTable.Columns.Count - 3 STEP 1
+        SET Building_Address TO $'''%Building_Address% %CurrentITable.DataTable[LoopIndex_A][Colmn_Index2]%'''
+    END
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: CurrentITable.DataTable[LoopIndex_A][0] Column: FirstFreeColumn_Merge - 5 Row: FirstFreeRow_Merge
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: CurrentITable.DataTable[LoopIndex_A][1] Column: FirstFreeColumn_Merge - 4 Row: FirstFreeRow_Merge
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Building_Address Column: FirstFreeColumn_Merge - 3 Row: FirstFreeRow_Merge
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: CurrentITable.DataTable[LoopIndex_A][CurrentITable.DataTable.Columns.Count - 2] Column: FirstFreeColumn_Merge - 2 Row: FirstFreeRow_Merge
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: CurrentITable.DataTable[LoopIndex_A][CurrentITable.DataTable.Columns.Count - 1] Column: FirstFreeColumn_Merge - 1 Row: FirstFreeRow_Merge
+END

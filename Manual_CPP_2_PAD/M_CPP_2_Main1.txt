@@ -1,0 +1,23 @@
+Folder.GetFiles Folder: $'''C:\\Users\\Jayesh Patil\\OneDrive - RABBIT AND TORTOISE TECHNOLOGY SOLUTIONS PRIVATE LIMITED\\Desktop\\JP1623''' FileFilter: $'''*.pdf''' IncludeSubfolders: False FailOnAccessDenied: True SortBy1: Folder.SortBy.NoSort SortDescending1: False SortBy2: Folder.SortBy.NoSort SortDescending2: False SortBy3: Folder.SortBy.NoSort SortDescending3: False Files=> Files
+LOOP FOREACH Currentpdffile IN Files
+    File.GetPathPart File: Currentpdffile FileNameWithoutExtension=> FileNameNoExtension
+    Excel.LaunchExcel.LaunchAndOpenUnderExistingProcess Path: $'''C:\\Users\\Jayesh Patil\\Desktop\\JP1623\\Input_Temp.xlsx''' Visible: True ReadOnly: False Instance=> ExcelInstance
+    CALL Locations
+    DISABLE CALL Forms_Of_All_Coverage
+    DISABLE CALL Forms_Of_Property_Coverage
+    DISABLE CALL 'Forms_of_Genera_ Ability_Coverage'
+    DISABLE CALL Coverages
+    DISABLE CALL Premium_Values
+    DISABLE CALL 'Crime Coverage'
+    DISABLE CALL 'General Liability_copy_1'
+    DISABLE CALL 'Inland Marine'
+    DISABLE CALL Cyber_Liability
+    DISABLE CALL FLOOD
+    DISABLE CALL Earth_Movement_copy
+    CALL Earthquake_Sprinkler_copy
+    CALL Broadform_Water_Damage_copy
+    DateTime.GetCurrentDateTime.Local DateTimeFormat: DateTime.DateTimeFormat.DateAndTime CurrentDateTime=> CurrentDateTime
+    Text.Replace Text: CurrentDateTime TextToFind: $'''/''' IsRegEx: False IgnoreCase: False ReplaceWith: $'''_''' ActivateEscapeSequences: False Result=> CurrentDateTime
+    Text.Replace Text: CurrentDateTime TextToFind: $''':''' IsRegEx: False IgnoreCase: False ReplaceWith: $'''_''' ActivateEscapeSequences: False Result=> CurrentDateTime
+    Excel.CloseExcel.CloseAndSaveAs Instance: ExcelInstance DocumentFormat: Excel.ExcelFormat.FromExtension DocumentPath: $'''C:\\Users\\Jayesh Patil\\Desktop\\JP1623\\%FileNameNoExtension%_%CurrentDateTime%.xlsx'''
+END

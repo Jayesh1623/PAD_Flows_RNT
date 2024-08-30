@@ -1,0 +1,34 @@
+Pdf.ExtractTextFromPDF.ExtractText PDFFile: Currentpdffile DetectLayout: True ExtractedText=> Structured_Premium_Data
+Text.ParseText.RegexParseForFirstOccurrence Text: Structured_Premium_Data TextToFind: $'''(?<=Coverage\\s+Limit\\s+Premium)([\\s\\S]+?)(?=Commercial\\sGeneral\\sLiability\\sProposed\\sCoverages)''' StartingPosition: 0 IgnoreCase: False Match=> Data1
+Text.Replace Text: Data1 TextToFind: $'''.*\\s{25}[A-z].*''' IsRegEx: True IgnoreCase: False ReplaceWith: $'''%''%''' ActivateEscapeSequences: False Result=> Replaced
+Text.ParseText.RegexParse Text: Replaced TextToFind: $'''.*[$].*''' StartingPosition: 0 IgnoreCase: False Matches=> Matches
+SET Index TO 21
+LOOP FOREACH CurrentItem IN Matches
+    Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''.*(?=[$])''' StartingPosition: 0 IgnoreCase: False Match=> Title
+    IF Contains(Title, $'''Total''', False) THEN
+        Text.Replace Text: Title TextToFind: $'''Total''' IsRegEx: False IgnoreCase: False ReplaceWith: $'''%''%''' ActivateEscapeSequences: False Result=> Title
+    END
+    Text.ParseText.RegexParseForFirstOccurrence Text: CurrentItem TextToFind: $'''(?<=([A-Z])\\w+\\s*)\\$.*''' StartingPosition: 0 IgnoreCase: False Match=> Value
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Title.Trimmed Column: $'''A''' Row: Index
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Value.Trimmed Column: $'''B''' Row: Index
+    Variables.IncreaseVariable Value: Index IncrementValue: 1
+END
+Text.ParseText.RegexParse Text: ExtractedPDFText TextToFind: $'''.*(?<=State:\\s)([\\s\\S]+?)(?=Total .* Surcharge Premium:).*''' StartingPosition: 0 IgnoreCase: False Matches=> Commercial_Surcharges_Data
+IF IsEmpty(Commercial_Surcharges_Data) THEN
+    GOTO 'Label A'
+END
+Excel.GetFirstFreeColumnRow Instance: ExcelInstance FirstFreeColumn=> FirstFreeColumnOn_Premium_Values
+Excel.GetFirstFreeRowOnColumn Instance: ExcelInstance Column: FirstFreeColumnOn_Premium_Values FirstFreeRowOnColumn=> FirstFreeRowOnColumn_Dynamic
+LOOP FOREACH Current_Surcharge_Data IN Commercial_Surcharges_Data
+    Text.ParseText.RegexParseForFirstOccurrence Text: Current_Surcharge_Data TextToFind: $'''(?<=State:\\s).*''' StartingPosition: 0 IgnoreCase: False Match=> Surcharge_State
+    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: $'''State: %Surcharge_State.Trimmed%''' Column: FirstFreeColumnOn_Premium_Values + 1 Row: FirstFreeRowOnColumn_Dynamic
+    Text.ParseText.RegexParse Text: Current_Surcharge_Data TextToFind: $'''.*[$].*''' StartingPosition: 0 IgnoreCase: False Matches=> Surcharge_Fields
+    LOOP FOREACH CurrentField IN Surcharge_Fields
+        Excel.GetFirstFreeRowOnColumn Instance: ExcelInstance Column: FirstFreeColumnOn_Premium_Values + 1 FirstFreeRowOnColumn=> FirstFreeRowOnColumn_Dynamic
+        Text.ParseText.RegexParseForFirstOccurrence Text: CurrentField TextToFind: $'''.*(?=[$])''' StartingPosition: 0 IgnoreCase: False Match=> Title
+        Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Title.Trimmed Column: FirstFreeColumnOn_Premium_Values + 1 Row: FirstFreeRowOnColumn_Dynamic
+        Text.ParseText.RegexParseForFirstOccurrence Text: CurrentField TextToFind: $'''(?<=([A-Z])\\w+:?\\s)\\$.*''' StartingPosition: 0 IgnoreCase: False Match=> Value
+        Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Value.Trimmed Column: FirstFreeColumnOn_Premium_Values + 2 Row: FirstFreeRowOnColumn_Dynamic
+    END
+END
+LABEL 'Label A'

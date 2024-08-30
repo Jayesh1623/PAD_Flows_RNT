@@ -1,0 +1,7 @@
+Database.Connect ConnectionString: $'''Provider=MSOLEDBSQL.1;Password=fda_dev_login;Persist Security Info=True;User ID=fda_dev_login;Initial Catalog=fda_dev;Data Source=rntdbinstance.cywt4ngax3hu.us-east-2.rds.amazonaws.com;Initial File Name=\"\";Use Encryption for Data=True;Trust Server Certificate=True;Server SPN=\"\";Authentication=\"\";Access Token=\"\"''' Connection=> SQLConnection
+SET Created_By TO $'''Jayesh_P'''
+SET establishment_id TO 1001
+DateTime.GetCurrentDateTime.Local DateTimeFormat: DateTime.DateTimeFormat.DateAndTime CurrentDateTime=> CurrentDateTime
+Database.ExecuteSqlStatement.Execute Connection: SQLConnection Statement: $'''INSERT INTO recall ( establishment_id, recall_link, trade_name, recall_class, posted_internet_date, termnation_date, fda_determined_cause, quantity_in_commerce, mfg_reason_for_recall, action, distribution, created_by, created_date)
+VALUES (\'%establishment_id%\', \'%Recall%\', \'%Trade_Name%\', \'%Recall_Class%\', \'%Posted_Internet_Date%\', \'%Terminated_Date%\', \'%FDA_Determined_Cause%\', \'%Quantity_In_Commerce%\', \'%Manufacturing_Reason_For_Recall%\', \'%Action_Field%\', \'%Distribution%\', \'%Created_By%\', \'%CurrentDateTime%\' );''' Timeout: 30
+Database.Close Connection: SQLConnection

@@ -1,0 +1,45 @@
+System.GetEnvironmentVariable.GetEnvironmentVariable Name: $'''USERNAME''' Value=> System_Username
+XML.ReadFromFile File: $'''C:\\Users\\Jayesh Patil\\OneDrive - RABBIT AND TORTOISE TECHNOLOGY SOLUTIONS PRIVATE LIMITED\\Desktop\\Manual_CPP\\Input_Files\\Manual_CPP_Config.xml''' Encoding: XML.FileEncoding.DefaultEncoding XmlDocument=> XmlDocument
+XML.GetXmlElementValue.GetElementValue Document: XmlDocument XPathQuery: $'''Manual_CPP/FilePath/Basic_Path''' TextValue=> Basic_Path
+XML.GetXmlElementValue.GetElementValue Document: XmlDocument XPathQuery: $'''Manual_CPP/FilePath/To_Email''' TextValue=> To_EMail
+XML.GetXmlElementValue.GetElementValue Document: XmlDocument XPathQuery: $'''Manual_CPP/FilePath/Email_BCC''' TextValue=> EMail_BCC
+XML.GetXmlElementValue.GetElementValue Document: XmlDocument XPathQuery: $'''Manual_CPP/FilePath/Email_Subject''' TextValue=> EMail_Subject
+XML.GetXmlElementValue.GetElementValue Document: XmlDocument XPathQuery: $'''Manual_CPP/FilePath/Technology''' TextValue=> Technology
+XML.GetXmlElementValue.GetElementValue Document: XmlDocument XPathQuery: $'''Manual_CPP/FilePath/ProcessName''' TextValue=> Process_Name
+XML.GetXmlElementValue.GetElementValue Document: XmlDocument XPathQuery: $'''Manual_CPP/FilePath/ProcessScope''' TextValue=> Process_Scope
+XML.GetXmlElementValue.GetElementValue Document: XmlDocument XPathQuery: $'''Manual_CPP/FilePath/Environment''' TextValue=> Environment
+XML.GetXmlElementValue.GetElementValue Document: XmlDocument XPathQuery: $'''Manual_CPP/FilePath/New_Folder_Path''' TextValue=> New_Folder_Path
+XML.GetXmlElementValue.GetElementValue Document: XmlDocument XPathQuery: $'''Manual_CPP/FilePath/Not_Processed_File_Path''' TextValue=> Not_Processed_File_Path
+XML.GetXmlElementValue.GetElementValue Document: XmlDocument XPathQuery: $'''Manual_CPP/FilePath/Input_Template''' TextValue=> Input_Template_Path
+XML.GetXmlElementValue.GetElementValue Document: XmlDocument XPathQuery: $'''Manual_CPP/FilePath/Email_Attachment_Path''' TextValue=> Email_Attachment_Path
+XML.GetXmlElementValue.GetElementValue Document: XmlDocument XPathQuery: $'''Manual_CPP/FilePath/Output_File_Path''' TextValue=> Output_File_Path
+XML.GetXmlElementValue.GetElementValue Document: XmlDocument XPathQuery: $'''Manual_CPP/FilePath/Day_End_Summary_Input_Path''' TextValue=> Day_End_Summary_Input_Path
+XML.GetXmlElementValue.GetElementValue Document: XmlDocument XPathQuery: $'''Manual_CPP/FilePath/Day_End_Summary_Output_Path''' TextValue=> Day_End_Summary_Output_Path
+XML.GetXmlElementValue.GetElementValue Document: XmlDocument XPathQuery: $'''Manual_CPP/FilePath/Success_EMailBody''' TextValue=> SuccessMailBody
+XML.GetXmlElementValue.GetElementValue Document: XmlDocument XPathQuery: $'''Manual_CPP/FilePath/Exception_EMail_Body''' TextValue=> ExceptionMailBody
+XML.GetXmlElementValue.GetElementValue Document: XmlDocument XPathQuery: $'''Manual_CPP/FilePath/Process_Log_File_Path''' TextValue=> ProcessLogFilePath
+XML.GetXmlElementValue.GetElementValue Document: XmlDocument XPathQuery: $'''Manual_CPP/FilePath/Error_Log_File_Path''' TextValue=> ErrorLogFilePath
+XML.GetXmlElementValue.GetElementValue Document: XmlDocument XPathQuery: $'''Manual_CPP/FilePath/Global_Log_File_Path''' TextValue=> GlobalLogFilePath
+XML.GetXmlElementValue.GetElementValue Document: XmlDocument XPathQuery: $'''Manual_CPP/FilePath/ExceptionType''' TextValue=> ExceptionTypes
+Text.SplitText.SplitWithDelimiter Text: ExceptionTypes CustomDelimiter: $''',''' IsRegEx: False Result=> ExceptionTypes
+XML.GetXmlElementValue.GetElementValue Document: XmlDocument XPathQuery: $'''Manual_CPP/FilePath/Item_Status''' TextValue=> ItemStatus
+Text.SplitText.SplitWithDelimiter Text: ItemStatus CustomDelimiter: $''',''' IsRegEx: False Result=> ItemStatus
+XML.GetXmlElementValue.GetElementValue Document: XmlDocument XPathQuery: $'''Manual_CPP/FilePath/LogType''' TextValue=> LogType
+Text.SplitText.SplitWithDelimiter Text: LogType CustomDelimiter: $''',''' IsRegEx: False Result=> LogType
+XML.GetXmlElementValue.GetElementValue Document: XmlDocument XPathQuery: $'''Manual_CPP/FilePath/LogID''' TextValue=> LogIDS
+Text.SplitText.SplitWithDelimiter Text: LogIDS CustomDelimiter: $''',''' IsRegEx: False Result=> LogIDS
+XML.GetXmlElementValue.GetElementValue Document: XmlDocument XPathQuery: $'''Manual_CPP/FilePath/Subflow_Names''' TextValue=> SubflowNames
+Text.SplitText.SplitWithDelimiter Text: SubflowNames CustomDelimiter: $''',''' IsRegEx: False Result=> SubflowNames
+XML.GetXmlElementValue.GetElementValue Document: XmlDocument XPathQuery: $'''Manual_CPP/FilePath/Description''' TextValue=> In_Description
+Text.SplitText.SplitWithDelimiter Text: In_Description CustomDelimiter: $''',''' IsRegEx: False Result=> In_Description
+XML.GetXmlElementValue.GetElementValue Document: XmlDocument XPathQuery: $'''Manual_CPP/FilePath/Error_Description''' TextValue=> ErrorDescription
+Text.SplitText.SplitWithDelimiter Text: ErrorDescription CustomDelimiter: $''',''' IsRegEx: False Result=> Error_Description
+SET FilePath TO $'''%Basic_Path%%System_Username%%Not_Processed_File_Path%\\'''
+SET Input_Template TO $'''%Basic_Path%%System_Username%%Input_Template_Path%'''
+SET OutputFilePath TO $'''%Basic_Path%%System_Username%%Output_File_Path%'''
+SET NewFolderPath TO $'''%Basic_Path%%System_Username%%New_Folder_Path%'''
+SET Email_Attachment_Path TO $'''%Basic_Path%%System_Username%%Not_Processed_File_Path%'''
+SET DayEndSummaryInputTemplate TO $'''%Basic_Path%%System_Username%%Day_End_Summary_Input_Path%'''
+SET DayEndSummaryOutputTemplate TO $'''%Basic_Path%%System_Username%%Day_End_Summary_Output_Path%'''
+SET Process_Log_File_Path TO $'''%Basic_Path%%System_Username%%ProcessLogFilePath%'''
+SET Error_Log_File_Path TO $'''%Basic_Path%%System_Username%%ErrorLogFilePath%'''
